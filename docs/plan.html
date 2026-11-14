@@ -1,0 +1,293 @@
+<title>線画ゼロショット除去 研究計画</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 研究計画書。問い → 核心の図 → ゴールと基準 → 手法案 → 実験表 → 文献 → 日程・ルール。表と図は横スクロール枠に入れる */
+:root{
+  --bg:#F3F5F8; --surface:#FFFFFF; --fg:#17202D; --muted:#596476; --line:#D7DCE5;
+  --ink:#1F2A44;            /* 線画の墨 */
+  --core:#3346C9; --core-soft:#E6E9FB;
+  --app:#0E7F72; --app-soft:#DDF2EE;
+  --adj:#A84C22; --adj-soft:#F7E6DC;
+  --focus:#B8860B; --focus-soft:#FBF1D6; --eq-bg:#EEF1F6;
+  --f-display:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",sans-serif;
+  --f-body:"Noto Sans JP","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0F131B; --surface:#171C27; --fg:#E5E8EF; --muted:#9AA3B5; --line:#2A3242; --ink:#E5E8EF;
+  --core:#8B9BFF; --core-soft:#1E2550; --app:#4CC5B4; --app-soft:#123631;
+  --adj:#E8936A; --adj-soft:#3A2218; --focus:#E3B544; --focus-soft:#3A2F12; --eq-bg:#1B2130; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0F131B; --surface:#171C27; --fg:#E5E8EF; --muted:#9AA3B5; --line:#2A3242; --ink:#E5E8EF;
+  --core:#8B9BFF; --core-soft:#1E2550; --app:#4CC5B4; --app-soft:#123631;
+  --adj:#E8936A; --adj-soft:#3A2218; --focus:#E3B544; --focus-soft:#3A2F12; --eq-bg:#1B2130; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15.5px;line-height:1.8;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 72px}
+.wrap{max-width:980px;margin:0 auto;display:flex;flex-direction:column;gap:52px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;line-height:1.35;margin:0}
+h1{font-size:clamp(28px,5vw,44px);font-weight:900}
+h2{font-size:clamp(21px,3vw,27px)}
+h3{font-size:18px}
+p{margin:0}
+a{color:var(--core)}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.eyebrow{font-family:var(--f-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.prose{max-width:70ch;display:flex;flex-direction:column;gap:12px}
+section{display:flex;flex-direction:column;gap:16px;scroll-margin-top:16px}
+header{padding-top:40px;display:flex;flex-direction:column;gap:14px}
+.meta{display:flex;flex-wrap:wrap;gap:6px 10px}
+.chip{font-family:var(--f-mono);font-size:11.5px;border:1px solid currentColor;border-radius:99px;padding:1px 10px;white-space:nowrap}
+.c-core{color:var(--core)} .c-app{color:var(--app)} .c-adj{color:var(--adj)} .c-mut{color:var(--muted)}
+.question{background:var(--surface);border:1.5px solid var(--core);border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:8px}
+.question p.q{font-family:var(--f-display);font-size:clamp(17px,2.4vw,20px);font-weight:700;line-height:1.6}
+.toc{display:flex;flex-wrap:wrap;gap:6px 8px;font-size:13px}
+.toc a{text-decoration:none;color:var(--fg);border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:3px 12px}
+.hyp{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+@media (max-width:820px){.hyp{grid-template-columns:1fr}}
+.hyp > div,.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.hyp b.id,.card b.id{font-family:var(--f-mono);color:var(--core);font-size:13px}
+.hyp p,.card p{font-size:14px}
+figure{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.howto{font-size:13.5px;background:var(--eq-bg);border-radius:8px;padding:10px 14px;display:flex;flex-direction:column;gap:4px}
+.howto b{color:var(--core);font-family:var(--f-display)}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+.btn{font:inherit;font-size:13.5px;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:99px;padding:4px 14px;cursor:pointer}
+.btn[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.scroll{overflow-x:auto}
+.scroll svg{display:block;width:100%;height:auto}
+svg text{font-family:var(--f-body)}
+.ladder{display:flex;flex-direction:column;gap:10px}
+.rung{display:grid;grid-template-columns:4.2em 1fr;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;align-items:start}
+.rung .g{font-family:var(--f-mono);font-size:20px;font-weight:500;color:var(--core)}
+.rung.main{border:1.5px solid var(--core)}
+.rung h3{font-size:16.5px}
+.rung ul{margin:6px 0 0;padding-left:1.1em;font-size:14px;display:flex;flex-direction:column;gap:2px}
+.pass{color:var(--app);font-weight:700}
+table.t{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--surface);min-width:760px}
+table.t th,table.t td{border-top:1px solid var(--line);padding:9px 10px;text-align:left;vertical-align:top}
+table.t th{font-size:12px;color:var(--muted);font-weight:500;background:var(--eq-bg)}
+table.t td:first-child{font-family:var(--f-mono);font-weight:500;white-space:nowrap;color:var(--core)}
+.num{font-variant-numeric:tabular-nums;font-family:var(--f-mono);font-size:12.5px}
+.methods{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:820px){.methods{grid-template-columns:1fr}}
+.methods .card .pri{font-size:12px}
+.refs{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:820px){.refs{grid-template-columns:1fr}}
+.refs > div{display:flex;flex-direction:column;gap:6px;min-width:0}
+.refs h3{font-size:15px;color:var(--muted)}
+.refs ul{margin:0;padding-left:1.1em;font-size:13.5px;display:flex;flex-direction:column;gap:5px}
+.refs li{overflow-wrap:anywhere}
+.refs li em{font-style:normal;color:var(--muted)}
+.rules{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:6px;font-size:14.5px}
+.note{background:var(--focus-soft);border-radius:10px;padding:14px 18px;font-size:14.5px;display:flex;flex-direction:column;gap:6px}
+footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+</style>
+
+<div class="wrap">
+<header>
+  <span class="eyebrow">Research plan · テーマ A · 2026年11月14日 版</span>
+  <h1>線画ゼロショット除去 研究計画</h1>
+  <div class="meta"><span class="chip c-core">状態：計画</span><span class="chip c-app">計算資源：CPU で可</span><span class="chip c-mut">深層学習：約2万パラメータの小さなネット</span><span class="chip c-mut">作業フォルダ：lineart-zs-denoise</span></div>
+  <div class="question">
+    <span class="eyebrow">研究の問い</span>
+    <p class="q">ノイズの乗った画像1枚だけで学習する「ゼロショットのノイズ除去」は、線画（細い線と平らな塗り）でも線を壊さずに使えるか。壊すなら、その原因はどこにあり、どう直せば線を守れるか。</p>
+  </div>
+  <nav class="toc" aria-label="目次"><a href="#hyp">仮説</a><a href="#core">核心の図</a><a href="#goals">ゴール</a><a href="#criteria">評価の基準</a><a href="#methods">新手法の案</a><a href="#exp">実験計画</a><a href="#data">データと指標</a><a href="#refs">参考文献</a><a href="#schedule">日程</a><a href="#rules">進め方のルール</a></nav>
+</header>
+
+<section id="hyp">
+  <span class="eyebrow">仮説</span>
+  <h2>何が起きると予想しているか</h2>
+  <div class="prose"><p>基準にする手法は Zero-Shot Noise2Noise（ZS-N2N, CVPR 2023）です。ノイズ画像を 2×2 のマスごとに「左上と右下の平均」「右上と左下の平均」の2枚に間引き、片方からもう片方を予測するよう小さなネットを学習します。2枚は同じ絵に別々のノイズが乗ったもの、とみなせるという前提に立っています。写真のようになめらかな画像ではこの前提がほぼ成り立ちますが、1ピクセル幅の線ではそうとは限りません。</p></div>
+  <div class="hyp">
+    <div><b class="id">H1　向きの偏り</b><p>斜め 45° の細い線は、間引いた2枚の片方にだけ写り、もう片方には写らない。ネットはそれを「ノイズ」として学び、<b>斜めの細い線だけが薄くなる・途切れる</b>。縦横の線では起きにくい。</p></div>
+    <div><b class="id">H2　太さの依存</b><p>線が細いほど（1〜1.5px）この影響は強く、3px 以上ではほぼ消える。<b>線幅と向きで線の残り方を表にすると、はっきりした傾向が出る</b>。</p></div>
+    <div><b class="id">H3　直せる</b><p>間引き方を線の向きに合わせる、間引き方を複数混ぜる、線の周りの誤差を重く数える、などの工夫で、<b>写真での性能を落とさずに</b>線の残り方を改善できる。</p></div>
+  </div>
+</section>
+
+<section id="core">
+  <span class="eyebrow">核心の図</span>
+  <h2>間引いた2枚に、線は同じように写るか</h2>
+  <figure>
+    <div class="btns" role="group" aria-label="線の向き">
+      <button class="btn" type="button" id="o-h" data-o="h" aria-pressed="false">横線</button>
+      <button class="btn" type="button" id="o-v" data-o="v" aria-pressed="false">縦線</button>
+      <button class="btn" type="button" id="o-d" data-o="d" aria-pressed="true">斜め ＼ 45°</button>
+      <button class="btn" type="button" id="o-a" data-o="a" aria-pressed="false">斜め ／ 45°</button>
+    </div>
+    <div class="scroll"><svg id="ds" viewBox="0 0 900 300" role="img" aria-label="2×2 の間引きで線がどう分かれるか" style="min-width:640px"></svg></div>
+    <div class="howto"><b>図の見方</b><span>左は 8×8 ピクセルの画像で、1ピクセル幅の線が入っています（ノイズなし）。細い枠が 2×2 のマスです。中央の2枚が ZS-N2N の間引き方で作る4×4 の画像で、D1 は各マスの「右上と左下の平均」、D2 は「左上と右下の平均」です。右端は D1 と D2 の差です。</span><span>横線・縦線では D1 と D2 に同じ濃さ（半分の濃さ）で写り、差は 0 です。斜め線では、<b>片方にだけ線が写り、もう片方は真っ白</b>になります。ZS-N2N は「D1 から D2 を予測する」ので、斜めの細い線は「予測できない成分＝ノイズ」として消される方向に学習が進むはずです。これが仮説 H1 の根拠で、最初の実験で確かめます。</span></div>
+  </figure>
+</section>
+
+<section id="goals">
+  <span class="eyebrow">ゴール</span>
+  <h2>どこを目指すか：4段階のゴール</h2>
+  <div class="ladder">
+    <div class="rung"><span class="g">G0</span><div><h3>基準手法の再現</h3><ul><li>ZS-N2N を自分で実装し、論文の Table 1（Kodak24・McMaster18、ガウスノイズ σ=10/25/50）を再現する</li><li><span class="pass">合格</span>：Kodak24 σ=25 で 29.07 dB ±0.3 dB、6条件すべてで論文値 ±0.5 dB 以内</li><li>M4 の CPU での実行時間も記録する（論文は Intel i9 の CPU で 1枚 80 秒）</li></ul></div></div>
+    <div class="rung"><span class="g">G1</span><div><h3>線画での失敗を突き止める</h3><ul><li>線画のベンチマーク（線の太さ・向きを制御した合成線画）を作り、ZS-N2N で線がどう壊れるかを測る</li><li><span class="pass">合格</span>：仮説 H1・H2 を、向き別・太さ別の「線の残り方」の表で、支持または否定できる（どちらの結果でも成果）</li></ul></div></div>
+    <div class="rung main"><span class="g">G2</span><div><h3>線を守る新しい手法（本命）</h3><ul><li>手法案 M1〜M4 を試し、線画に強いゼロショットのノイズ除去を作る</li><li><span class="pass">合格</span>：線画で ZS-N2N より PSNR +0.5 dB 以上、かつ線の再現率 +5 ポイント以上。写真（Kodak24）での低下は 0.1 dB 以内、計算時間は 2 倍以内</li></ul></div></div>
+    <div class="rung"><span class="g">G3</span><div><h3>実際のスキャン画像で使えることを示す</h3><ul><li>紙の質感・JPEG 圧縮・スキャンのムラなど、ピクセルごとに独立でないノイズへ広げる</li><li><span class="pass">合格</span>：自分で描いてスキャンした線画 10〜20 枚で、見た目の比較と、きれいな原画がある場合は数値で優位を示す。成果を技術レポート（arXiv など）または国内学会（MIRU、Visual Computing、NICOGRAPH など）の発表にまとめる</li></ul></div></div>
+  </div>
+</section>
+
+<section id="criteria">
+  <span class="eyebrow">評価の基準</span>
+  <h2>「良くなった」と言うためのルール</h2>
+  <div class="scroll"><table class="t">
+    <tr><th>項目</th><th>基準</th><th>理由</th></tr>
+    <tr><td>主指標（全体）</td><td>PSNR（dB）と SSIM。画像は中央 256×256 を切り出し、値域 [0,1] で計算</td><td>ZS-N2N 論文と同じ条件で、論文の数値と直接比べるため</td></tr>
+    <tr><td>主指標（線）</td><td>線の再現率：正解の線を細線化（骨格化）し、そのうち除去後の画像を2値化した線で覆われている割合。ほかに線の適合率と clDice</td><td>PSNR は面積の大きい背景に支配され、細い線の消失を見落とすため</td></tr>
+    <tr><td>補助指標</td><td>線上の PSNR（正解の線を 2px 太らせた領域だけで計算）、線の濃さの保持率（線上の平均の濃さ ÷ 正解の濃さ）、向き別（0°・22.5°・45°…）の再現率</td><td>仮説 H1・H2 を直接確かめるため</td></tr>
+    <tr><td>改善の判定</td><td>同じ画像・同じノイズで比べ、画像ごとの差に Wilcoxon 符号順位検定を行い p &lt; 0.05。平均と標準偏差を必ず併記</td><td>平均値の小さな差を偶然と区別するため</td></tr>
+    <tr><td>乱数</td><td>ノイズは固定シードで事前に作って保存し、全手法で同じものを使う。ネットの初期値は 3 シードで平均</td><td>比較の公平さと再現性のため</td></tr>
+    <tr><td>写真での性能</td><td>Kodak24・McMaster18 で ZS-N2N からの低下 0.1 dB 以内</td><td>線画専用にして一般性を失っていないことを示すため</td></tr>
+    <tr><td>速さ</td><td>256×256 の1枚あたりの時間（M4 の CPU）。ZS-N2N の 2 倍以内</td><td>「軽くて速い」という手法の長所を保つため</td></tr>
+  </table></div>
+</section>
+
+<section id="methods">
+  <span class="eyebrow">新手法の案</span>
+  <h2>試したい工夫（優先度順）</h2>
+  <div class="methods">
+    <div class="card"><b class="id">M1　間引き方を混ぜる</b><p>D1/D2 の組み合わせを、斜め2通りに加えて「横に並んだ2画素」「縦に並んだ2画素」も使い、学習の反復ごとにランダムに選ぶ。どの向きの線も、どれかの組み合わせでは両方に写る。Neighbor2Neighbor（2021）のランダムな近傍選びに近い発想を、ZS-N2N の軽さのまま取り入れる。</p><span class="pri chip c-core">優先度 高・実装が簡単</span></div>
+    <div class="card"><b class="id">M2　線の向きに合わせて間引く</b><p>ノイズ画像から局所的な線の向き（構造テンソル）を推定し、線に沿った2画素を組にして間引く。線は両方に同じように写り、ノイズだけが独立になる。M1 より狙いを絞った版。</p><span class="pri chip c-core">優先度 高・本命候補</span></div>
+    <div class="card"><b class="id">M3　線の周りの誤差を重く数える</b><p>損失を、エッジの強さで重み付けする。エッジはノイズ画像を軽くぼかして求める（正解は使わない）。線を消す方向の学習にブレーキをかける。</p><span class="pri chip c-app">優先度 中</span></div>
+    <div class="card"><b class="id">M4　回転・反転の平均</b><p>画像を 90° 回転・左右反転した8通りで除去して平均する（テスト時の拡張）。向きの偏りを打ち消す、最も簡単な比較用の手法。M1・M2 がこれより良いことを示す必要がある。</p><span class="pri chip c-app">優先度 中・比較用</span></div>
+    <div class="card"><b class="id">M5　墨と紙の2値性を使う</b><p>線画は「墨の色」と「紙の色」にほぼ分かれる。出力をパレット（k-means で推定した数色）へ近づける弱い正則化を加える。テーマ F（AI 画像の色ムラ）にもつながる。</p><span class="pri chip c-mut">優先度 低・G2 の後</span></div>
+    <div class="card"><b class="id">M6　相関のあるノイズへの対応</b><p>紙の質感や JPEG のノイズは隣の画素と相関するので、2×2 の間引きの前提が崩れる。間引きの間隔を広げる、Median2Median（2025）の考え方を取り入れる、などを G3 で試す。</p><span class="pri chip c-mut">優先度 低・G3 で</span></div>
+  </div>
+</section>
+
+<section id="exp">
+  <span class="eyebrow">実験計画</span>
+  <h2>実験の一覧</h2>
+  <div class="scroll"><table class="t">
+    <tr><th>ID</th><th>目的</th><th>データ</th><th>比べるもの</th><th>見る指標</th><th>合格ライン</th></tr>
+    <tr><td>E0</td><td>環境と再現（G0）</td><td>Kodak24、McMaster18（中央 256²）、ガウス σ=10/25/50、ポアソン λ=50/25/10</td><td>ZS-N2N（自前実装）、BM3D</td><td>PSNR、時間</td><td>論文値 ±0.5 dB（σ=25 は ±0.3 dB）</td></tr>
+    <tr><td>E1</td><td>仮説 H1・H2 の検証（G1）</td><td>合成線画：線幅 1/1.5/2/3/4px × 向き 8 方向 × σ=10/25/50</td><td>ZS-N2N、BM3D、DIP、メディアン、NLM</td><td>向き別・太さ別の線の再現率、線の濃さの保持率</td><td>向きによる差の有無を統計的に判定できること</td></tr>
+    <tr><td>E2</td><td>損失の各項の役割</td><td>E1 と同じ</td><td>ZS-N2N から残差損失／一貫性損失を外したもの</td><td>線の再現率</td><td>どの項が線を消しているかを特定</td></tr>
+    <tr><td>E3</td><td>新手法の比較（G2）</td><td>合成線画＋Quick, Draw! を描画した線画（ライセンス確認後）</td><td>M1、M2、M3、M4、組み合わせ</td><td>PSNR、線の再現率、clDice</td><td>G2 の合格ライン</td></tr>
+    <tr><td>E4</td><td>写真で性能が落ちないか</td><td>Kodak24、McMaster18</td><td>E3 で良かった手法 vs ZS-N2N</td><td>PSNR</td><td>低下 0.1 dB 以内</td></tr>
+    <tr><td>E5</td><td>実際のスキャン（G3）</td><td>自作の線画をスキャン（原画のデジタル版があれば正解に使う）、紙の質感・JPEG の合成劣化</td><td>E3 の上位手法、ZS-N2N、Median2Median 系</td><td>見た目、可能なら PSNR と線の指標</td><td>見た目で明確に優位、数値で有意</td></tr>
+    <tr><td>E6</td><td>速さ</td><td>256² と 1024² の画像</td><td>全手法</td><td>1枚あたりの時間（M4 CPU、参考に GPU）</td><td>ZS-N2N の 2 倍以内</td></tr>
+  </table></div>
+</section>
+
+<section id="data">
+  <span class="eyebrow">データと指標</span>
+  <h2>何で測るか</h2>
+  <div class="methods">
+    <div class="card"><b class="id">写真（再現用）</b><p><b>Kodak24</b>（24枚）と <b>McMaster18</b>（18枚）。中央 256×256 を切り出す（ZS-N2N 論文と同じ）。</p></div>
+    <div class="card"><b class="id">合成線画（自作ベンチマーク）</b><p>プログラムでベジエ曲線・直線・円を描いて作る。線幅・向き・アンチエイリアスの有無・塗りの有無を制御でき、正解が厳密にわかり、権利の問題もない。256×256 を 100 枚以上。</p></div>
+    <div class="card"><b class="id">手描き線画</b><p>Quick, Draw! のストロークデータを描画して使う（CC BY 4.0 とされているので、使う前に条件を確認する）。さらに自分で描いた線画を 10〜20 枚。</p></div>
+    <div class="card"><b class="id">線の指標の考え方</b><p>文書の2値化の評価（DIBCO の pseudo-F-measure）は、細い文字の骨格がどれだけ残ったかを測る。同じ考え方を線画に当てはめる。clDice、Skeleton Recall も参考にする。</p></div>
+  </div>
+</section>
+
+<section id="refs">
+  <span class="eyebrow">参考文献</span>
+  <h2>読むべき文献と、何に使うか</h2>
+  <div class="refs">
+    <div><h3>基準手法と直接の改良（必読）</h3><ul>
+      <li><a href="https://arxiv.org/html/2303.11253" target="_blank" rel="noopener">Mansour &amp; Heckel. Zero-Shot Noise2Noise. CVPR 2023</a><em> …基準手法。約2万パラメータ、1枚 CPU 80秒（i9）。σ=50 など強いノイズで弱いと本文に記載</em></li>
+      <li><a href="https://ojs.aaai.org/index.php/AAAI/article/view/32575" target="_blank" rel="noopener">Zero-Shot Noise2Mean. AAAI 2025</a><em> …ランダムなマスクで間引き、入力と目標のずれを縮める</em></li>
+      <li><a href="https://arxiv.org/html/2510.12646v1" target="_blank" rel="noopener">Zero-Shot CFC. arXiv 2510.12646, 2025</a><em> …周波数の整合性。実写ノイズ向け</em></li>
+      <li><a href="https://arxiv.org/abs/2607.24135" target="_blank" rel="noopener">LoTA-N2N. arXiv 2607.24135, 2026</a><em> …2段階の適応。相関ノイズ・場所で変わるノイズでの限界を議論</em></li>
+      <li><a href="https://arxiv.org/html/2510.01666" target="_blank" rel="noopener">Median2Median. arXiv 2510.01666, 2025</a><em> …構造をもつノイズへのゼロショット対応（M6・G3 で使う）</em></li>
+      <li><a href="https://arxiv.org/abs/2506.12693" target="_blank" rel="noopener">ZS-NCD. arXiv 2506.12693, 2025</a><em> …圧縮ネットを使うゼロショット除去。比較候補</em></li>
+    </ul></div>
+    <div><h3>背景となる自己教師ありの除去</h3><ul>
+      <li>Lehtinen ら. Noise2Noise. ICML 2018<em> …「ノイズ画像どうしで学習できる」の出発点</em></li>
+      <li>Ulyanov ら. Deep Image Prior. CVPR 2018<em> …比較手法（DIP）</em></li>
+      <li>Krull ら. Noise2Void. CVPR 2019 ／ Batson &amp; Royer. Noise2Self. ICML 2019<em> …盲点（ブラインドスポット）型</em></li>
+      <li>Quan ら. Self2Self. CVPR 2020<em> …比較手法（S2S）。強いノイズで強いが遅い</em></li>
+      <li>Huang ら. Neighbor2Neighbor. CVPR 2021<em> …ランダムな近傍での間引き（M1 の発想元）</em></li>
+      <li>Dabov ら. BM3D. TIP 2007<em> …深層学習なしの強い比較手法</em></li>
+    </ul></div>
+    <div><h3>線画・漫画の復元</h3><ul>
+      <li><a href="https://openaccess.thecvf.com/content/CVPR2021/html/Xie_Exploiting_Aliasing_for_Manga_Restoration_CVPR_2021_paper.html" target="_blank" rel="noopener">Xie ら. Exploiting Aliasing for Manga Restoration. CVPR 2021</a><em> …スキャン・縮小で劣化したスクリーントーンの復元</em></li>
+      <li><a href="https://diglib7.eg.org/bitstream/handle/10.2312/egsh.20151018.073-076/073-076.pdf?sequence=1" target="_blank" rel="noopener">Ito ら. Separation of Manga Line Drawings and Screentones. Eurographics 2015</a><em> …フィルタで線を残してトーンを除く古典</em></li>
+      <li>Simo-Serra ら. Learning to Simplify. SIGGRAPH 2016<em> …ラフ線画の清書（データ駆動の対極として参照）</em></li>
+    </ul></div>
+    <div><h3>評価指標</h3><ul>
+      <li><a href="https://arxiv.org/pdf/2606.22625" target="_blank" rel="noopener">DIBCO の FM・p-FM・DRD（文書2値化の評価。2026 年の論文での使われ方）</a><em> …p-FM は細い字の骨格の保存を重視</em></li>
+      <li><a href="https://alphaxiv.org/abs/2404.03010" target="_blank" rel="noopener">Skeleton Recall Loss（2024）</a>、clDice（CVPR 2021）<em> …細い構造のつながりの評価</em></li>
+      <li><a href="https://arxiv.org/html/2603.00163v1" target="_blank" rel="noopener">ホワイトボードの線の評価プロトコル（2026）</a><em> …細い線と太い線を分けて評価する考え方</em></li>
+    </ul></div>
+  </div>
+</section>
+
+<section id="schedule">
+  <span class="eyebrow">日程</span>
+  <h2>8週間の目安</h2>
+  <figure>
+    <div class="scroll"><svg id="gantt" viewBox="0 0 900 270" role="img" aria-label="8週間の日程" style="min-width:640px"></svg></div>
+    <div class="howto"><b>図の見方</b><span>横軸が週（1〜8週目）、帯がそれぞれの作業の期間です。ひし形は判断のタイミングで、G1 の結果（線が本当に壊れるか）を見て、G2 の手法の優先度を決め直します。</span></div>
+  </figure>
+</section>
+
+<section id="rules">
+  <span class="eyebrow">進め方のルール</span>
+  <h2>実験のたびに守ること</h2>
+  <ol class="rules">
+    <li>1回の実験は「設定ファイル1つ（YAML）→ 結果フォルダ1つ」。設定ファイルの内容のハッシュと git のコミット ID を結果に必ず残す</li>
+    <li>環境は Docker イメージで固定する（Python の依存は uv で固定）。手元では kind 上の Kubernetes Job として流し、同じマニフェストを後でクラウドでも使う</li>
+    <li>結果は CSV（画像ごと・手法ごと・シードごとの1行）で保存し、表とグラフは CSV から自動で作る</li>
+    <li>論文の数値と自分の数値は、常に並べた表で示す（再現の差を隠さない）</li>
+    <li>うまくいかなかった実験も記録する。G1 で「線は壊れない」とわかった場合も、それ自体を結果として扱い、計画を見直す</li>
+    <li>コードは feature ブランチで開発し、main へのマージはあなたが確認してから行う</li>
+  </ol>
+  <div class="note"><b>まだ確認できていないこと</b><p>ZS-N2N の学習の細かい設定（最適化手法・学習率・反復回数・チャンネル数）は論文本文になく、公式の Colab ノートブックに書かれています。E0 の最初にノートブックを読んで合わせます。Noise2Mean と Zero-Shot CFC のコードが公開されているか、Quick, Draw! の利用条件も、使う前に確認します。</p></div>
+</section>
+
+<footer>この計画は 2026年11月14日時点のものです。論文の数値は ZS-N2N 論文（arXiv 2303.11253 v3）の表から引用しました。ほかの論文の主張は要旨・紹介ページによるもので、まだ再現していません。計画は実験の結果を見ながら更新します。</footer>
+</div>
+
+<script>
+/* SVG ヘルパー */
+const NS="http://www.w3.org/2000/svg";
+function el(t,a,p){const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p&&p.appendChild(e);return e}
+function tx(p,x,y,s,o={}){const t=el("text",Object.assign({x,y,"font-size":13,fill:"var(--fg)","text-anchor":"middle"},o),p);t.textContent=s;return t}
+
+/* 核心の図：8×8 の線画を ZS-N2N の 2×2 間引きで D1・D2 に分ける */
+function lineImg(o){const g=[...Array(8)].map(()=>Array(8).fill(0));
+  for(let i=0;i<8;i++){if(o==="h")g[3][i]=1;if(o==="v")g[i][4]=1;if(o==="d")g[i][i]=1;if(o==="a")g[i][7-i]=1}return g}
+function drawDS(o){
+  const s=document.getElementById("ds");s.innerHTML="";const g=lineImg(o);
+  // D1 = 右上と左下の平均（k1=[[0,.5],[.5,0]]）、D2 = 左上と右下の平均（k2=[[.5,0],[0,.5]]）
+  const D1=[],D2=[];for(let r=0;r<4;r++){D1.push([]);D2.push([]);for(let c=0;c<4;c++){
+    D1[r].push((g[2*r][2*c+1]+g[2*r+1][2*c])/2);D2[r].push((g[2*r][2*c]+g[2*r+1][2*c+1])/2)}}
+  const grid=(x0,y0,cell,M,title,diff)=>{const n=M.length;
+    tx(s,x0+cell*n/2,y0-12,title,{"font-size":13,"font-weight":700});
+    for(let r=0;r<n;r++)for(let c=0;c<n;c++){const v=M[r][c];
+      const fill=diff?(v===0?"var(--surface)":"var(--adj)"):(v===0?"var(--surface)":"var(--ink)");
+      el("rect",{x:x0+c*cell,y:y0+r*cell,width:cell,height:cell,fill,"fill-opacity":diff?Math.min(1,Math.abs(v)):(v===0?1:v),stroke:"var(--line)","stroke-width":1},s)}
+    el("rect",{x:x0,y:y0,width:cell*n,height:cell*n,fill:"none",stroke:"var(--muted)","stroke-width":1.2},s)};
+  grid(20,40,28,g,"元の画像（8×8）",false);
+  for(let k=1;k<4;k++){el("line",{x1:20+k*56,x2:20+k*56,y1:40,y2:264,stroke:"var(--core)","stroke-opacity":.55,"stroke-width":1.4},s);el("line",{x1:20,x2:244,y1:40+k*56,y2:40+k*56,stroke:"var(--core)","stroke-opacity":.55,"stroke-width":1.4},s)}
+  tx(s,132,288,"細い枠＝2×2 のマス",{"font-size":11.5,fill:"var(--core)"});
+  grid(300,72,40,D1,"D1：右上＋左下 の平均",false);
+  grid(500,72,40,D2,"D2：左上＋右下 の平均",false);
+  grid(700,72,40,D1.map((row,r)=>row.map((v,c)=>v-D2[r][c])),"D1 − D2（差）",true);
+  const same=D1.every((row,r)=>row.every((v,c)=>v===D2[r][c]));
+  tx(s,600,262,same?"2枚に同じ濃さで写る → 線は「予測できる信号」として残る":"片方にだけ写る → 線は「予測できない成分」として消されやすい",{"font-size":13.5,"font-weight":700,fill:same?"var(--app)":"var(--adj)"});
+  tx(s,272,160,"→",{"font-size":22,fill:"var(--muted)"});
+}
+document.querySelectorAll("[data-o]").forEach(b=>b.addEventListener("click",()=>{document.querySelectorAll("[data-o]").forEach(x=>x.setAttribute("aria-pressed",String(x===b)));drawDS(b.dataset.o)}));
+drawDS("d");
+
+/* 日程図（8週間） */
+(function(){const s=document.getElementById("gantt"),L=200,R=880,T=34,row=27,W=(R-L)/8;
+  for(let w=0;w<8;w++){el("rect",{x:L+w*W,y:T-4,width:W,height:row*8+4,fill:w%2?"var(--eq-bg)":"var(--surface)"},s);tx(s,L+w*W+W/2,T-12,`${w+1}週目`,{"font-size":11.5,fill:"var(--muted)","font-family":"var(--f-mono)"})}
+  const tasks=[["環境構築（Docker・kind）",0,1,"app"],["E0 ZS-N2N の再現（G0）",0.5,2,"core"],["合成線画ベンチの作成",1,2.5,"app"],["E1・E2 失敗の分析（G1）",2,3.5,"core"],["E3 新手法 M1〜M4（G2）",3.5,6,"core"],["E4 写真での確認",5.5,6.5,"app"],["E5 スキャン・相関ノイズ（G3）",6,7.5,"core"],["まとめ（レポート・発表）",7,8,"adj"]];
+  tasks.forEach(([n,a,b,c],i)=>{const y=T+i*row;tx(s,L-10,y+16,n,{"text-anchor":"end","font-size":12.5});
+    el("rect",{x:L+a*W+2,y:y+4,width:(b-a)*W-4,height:row-9,rx:5,fill:`var(--${c}-soft)`,stroke:`var(--${c})`,"stroke-width":1.3},s)});
+  const mx=L+3.5*W,my=T+3*row+row/2;el("path",{d:`M${mx},${my-9} L${mx+9},${my} L${mx},${my+9} L${mx-9},${my} Z`,fill:"var(--focus)"},s);
+  tx(s,mx+14,my+5,"判断：線は本当に壊れるか",{"text-anchor":"start","font-size":11.5,fill:"var(--focus)","font-weight":700});
+})();
+</script>

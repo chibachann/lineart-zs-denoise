@@ -1,0 +1,8 @@
+# 取得したデータと実験結果はリポジトリに入れない（scripts/fetch_data.py で再取得できる）
+data/
+results/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+logs/

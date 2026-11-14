@@ -1,0 +1,41 @@
+# データと結果の置き場所。ローカル（kind）ではノードのフォルダ、クラウドでは
+# この PersistentVolume をクラウドのディスクやファイルストアに差し替えれば、Job 側はそのまま使える。
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: zsdn-data
+spec:
+  capacity: {storage: 5Gi}
+  accessModes: [ReadWriteOnce]
+  storageClassName: ""
+  hostPath: {path: /mnt/zsdn/data}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zsdn-data
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: ""
+  volumeName: zsdn-data
+  resources: {requests: {storage: 5Gi}}
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: zsdn-results
+spec:
+  capacity: {storage: 5Gi}
+  accessModes: [ReadWriteOnce]
+  storageClassName: ""
+  hostPath: {path: /mnt/zsdn/results}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: zsdn-results
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: ""
+  volumeName: zsdn-results
+  resources: {requests: {storage: 5Gi}}

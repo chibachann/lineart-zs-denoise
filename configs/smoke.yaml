@@ -1,0 +1,16 @@
+# 動作確認用: Kodak24 の 1 枚目だけ、σ=25 で 1 回。Docker・kind で環境が正しく動くかを見る
+name: smoke
+datasets:
+  - {name: kodak24, dir: data/kodak24}
+crop: 256
+noises:
+  - {kind: gauss, level: 25}
+noise_seeds: [0]
+init_seeds: [0]
+method: {name: zsn2n, chan_embed: 48, iters: 2000, lr: 0.001, step_size: 1500, gamma: 0.5}
+device: cpu
+workers: 1
+threads_per_worker: 4
+max_images: 1
+out_dir: results
+noise_cache: data/noisy

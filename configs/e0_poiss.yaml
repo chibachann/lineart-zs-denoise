@@ -1,0 +1,24 @@
+# E0: ZS-N2N の再現（ポアソンノイズ）。論文 Table 1 と同じ条件
+name: e0_poiss
+datasets:
+  - {name: kodak24, dir: data/kodak24}
+  - {name: mcmaster18, dir: data/mcmaster18}
+crop: 256              # 中央 256×256 を切り出す（論文と同じ）
+noises:
+  - {kind: poiss, level: 50}
+  - {kind: poiss, level: 25}
+  - {kind: poiss, level: 10}
+noise_seeds: [0]       # ノイズの乱数。保存して全手法で共有する
+init_seeds: [0]        # ネットの初期値の乱数
+method:
+  name: zsn2n
+  chan_embed: 48
+  iters: 2000
+  lr: 0.001
+  step_size: 1500
+  gamma: 0.5
+device: auto           # mps（Mac の GPU）/ cpu / cuda / auto
+workers: 4             # CPU のときの並列プロセス数
+threads_per_worker: 2
+out_dir: results
+noise_cache: data/noisy

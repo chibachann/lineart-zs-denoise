@@ -1,0 +1,31 @@
+# 実験 1 回分の Job。Makefile が __NAME__ / __IMAGE__ / __CONFIG__ / __EXTRA__ を置き換えて流す。
+# GPU のあるクラウドでは resources.limits に nvidia.com/gpu: 1 を足し、--device cuda にする。
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: __NAME__
+  labels: {app: zsdn}
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels: {app: zsdn}
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: exp
+          image: __IMAGE__
+          imagePullPolicy: IfNotPresent
+          args: ["--config", "__CONFIG__", "--device", "cpu"__EXTRA__]
+          resources:
+            requests: {cpu: "2", memory: 2Gi}
+            limits: {cpu: "4", memory: 4Gi}
+          volumeMounts:
+            - {name: data, mountPath: /work/data}
+            - {name: results, mountPath: /work/results}
+      volumes:
+        - name: data
+          persistentVolumeClaim: {claimName: zsdn-data}
+        - name: results
+          persistentVolumeClaim: {claimName: zsdn-results}

@@ -1,0 +1,13 @@
+# ローカル検証用の kind クラスタ。
+# リポジトリの data/ と results/ をノードの /mnt/zsdn/ に見せ、PersistentVolume 経由で Job に渡す。
+# hostPath は Makefile が絶対パスに置き換える（__REPO__）。
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: zsdn
+nodes:
+  - role: control-plane
+    extraMounts:
+      - hostPath: __REPO__/data
+        containerPath: /mnt/zsdn/data
+      - hostPath: __REPO__/results
+        containerPath: /mnt/zsdn/results

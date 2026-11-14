@@ -128,7 +128,7 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padd
   <span class="eyebrow">ゴール</span>
   <h2>どこを目指すか：4段階のゴール</h2>
   <div class="ladder">
-    <div class="rung"><span class="g">G0</span><div><h3>基準手法の再現</h3><ul><li>ZS-N2N を自分で実装し、論文の Table 1（Kodak24・McMaster18、ガウスノイズ σ=10/25/50）を再現する</li><li><span class="pass">合格</span>：Kodak24 σ=25 で 29.07 dB ±0.3 dB、6条件すべてで論文値 ±0.5 dB 以内</li><li>M4 の CPU での実行時間も記録する（論文は Intel i9 の CPU で 1枚 80 秒）</li></ul></div></div>
+    <div class="rung"><span class="g">G0</span><div><h3>基準手法の再現 <span class="pass">達成（2026-11-14）</span></h3><ul><li>ZS-N2N を自分で実装し、論文の Table 1（Kodak24・McMaster18、ガウスノイズ σ=10/25/50）を再現する</li><li><span class="pass">合格</span>：Kodak24 σ=25 で 29.07 dB ±0.3 dB、6条件すべてで論文値 ±0.5 dB 以内</li><li>M4 の CPU での実行時間も記録する（論文は Intel i9 の CPU で 1枚 80 秒）</li></ul></div></div>
     <div class="rung"><span class="g">G1</span><div><h3>線画での失敗を突き止める</h3><ul><li>線画のベンチマーク（線の太さ・向きを制御した合成線画）を作り、ZS-N2N で線がどう壊れるかを測る</li><li><span class="pass">合格</span>：仮説 H1・H2 を、向き別・太さ別の「線の残り方」の表で、支持または否定できる（どちらの結果でも成果）</li></ul></div></div>
     <div class="rung main"><span class="g">G2</span><div><h3>線を守る新しい手法（本命）</h3><ul><li>手法案 M1〜M4 を試し、線画に強いゼロショットのノイズ除去を作る</li><li><span class="pass">合格</span>：線画で ZS-N2N より PSNR +0.5 dB 以上、かつ線の再現率 +5 ポイント以上。写真（Kodak24）での低下は 0.1 dB 以内、計算時間は 2 倍以内</li></ul></div></div>
     <div class="rung"><span class="g">G3</span><div><h3>実際のスキャン画像で使えることを示す</h3><ul><li>紙の質感・JPEG 圧縮・スキャンのムラなど、ピクセルごとに独立でないノイズへ広げる</li><li><span class="pass">合格</span>：自分で描いてスキャンした線画 10〜20 枚で、見た目の比較と、きれいな原画がある場合は数値で優位を示す。成果を技術レポート（arXiv など）または国内学会（MIRU、Visual Computing、NICOGRAPH など）の発表にまとめる</li></ul></div></div>
@@ -160,6 +160,32 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padd
     <div class="card"><b class="id">M4　回転・反転の平均</b><p>画像を 90° 回転・左右反転した8通りで除去して平均する（テスト時の拡張）。向きの偏りを打ち消す、最も簡単な比較用の手法。M1・M2 がこれより良いことを示す必要がある。</p><span class="pri chip c-app">優先度 中・比較用</span></div>
     <div class="card"><b class="id">M5　墨と紙の2値性を使う</b><p>線画は「墨の色」と「紙の色」にほぼ分かれる。出力をパレット（k-means で推定した数色）へ近づける弱い正則化を加える。テーマ F（AI 画像の色ムラ）にもつながる。</p><span class="pri chip c-mut">優先度 低・G2 の後</span></div>
     <div class="card"><b class="id">M6　相関のあるノイズへの対応</b><p>紙の質感や JPEG のノイズは隣の画素と相関するので、2×2 の間引きの前提が崩れる。間引きの間隔を広げる、Median2Median（2025）の考え方を取り入れる、などを G3 で試す。</p><span class="pri chip c-mut">優先度 低・G3 で</span></div>
+  </div>
+</section>
+
+<section id="e0">
+  <span class="eyebrow">結果 · 2026-11-14</span>
+  <h2>E0 の結果：ZS-N2N の再現は 12 条件すべて合格（G0 達成）</h2>
+  <p>自前実装の ZS-N2N（2.2 万パラメータ、Adam・学習率 1e-3・2000 回、公式 Colab と同じ設定）で、論文の Table 1 と同じ条件を流しました。中央 256² を切り出し、ノイズのシード 1 つ、初期値のシード 1 つです。数値は PSNR（dB）です。</p>
+  <div class="scroll"><table class="t">
+    <tr><th>データ</th><th>ノイズ</th><th>再現</th><th>論文</th><th>差</th><th>SSIM</th><th>判定</th></tr>
+    <tr><td>Kodak24</td><td>ガウス σ=10</td><td>33.39</td><td>33.69</td><td>−0.30</td><td>0.910</td><td>合格</td></tr>
+    <tr><td>Kodak24</td><td><b>ガウス σ=25</b></td><td><b>28.79</b></td><td>29.07</td><td><b>−0.28</b>（基準 ±0.3）</td><td>0.788</td><td>合格</td></tr>
+    <tr><td>Kodak24</td><td>ガウス σ=50</td><td>24.69</td><td>24.81</td><td>−0.12</td><td>0.617</td><td>合格</td></tr>
+    <tr><td>McMaster18</td><td>ガウス σ=10</td><td>34.02</td><td>34.21</td><td>−0.19</td><td>0.904</td><td>合格</td></tr>
+    <tr><td>McMaster18</td><td>ガウス σ=25</td><td>28.62</td><td>28.80</td><td>−0.18</td><td>0.769</td><td>合格</td></tr>
+    <tr><td>McMaster18</td><td>ガウス σ=50</td><td>23.84</td><td>24.02</td><td>−0.18</td><td>0.597</td><td>合格</td></tr>
+    <tr><td>Kodak24</td><td>ポアソン λ=50</td><td>29.38</td><td>29.45</td><td>−0.07</td><td>0.809</td><td>合格</td></tr>
+    <tr><td>Kodak24</td><td>ポアソン λ=25</td><td>27.49</td><td>27.52</td><td>−0.03</td><td>0.737</td><td>合格</td></tr>
+    <tr><td>Kodak24</td><td>ポアソン λ=10</td><td>24.88</td><td>24.92</td><td>−0.04</td><td>0.610</td><td>合格</td></tr>
+    <tr><td>McMaster18</td><td>ポアソン λ=50</td><td>30.44</td><td>30.36</td><td>+0.08</td><td>0.852</td><td>合格</td></tr>
+    <tr><td>McMaster18</td><td>ポアソン λ=25</td><td>28.48</td><td>28.41</td><td>+0.07</td><td>0.796</td><td>合格</td></tr>
+    <tr><td>McMaster18</td><td>ポアソン λ=10</td><td>25.84</td><td>25.75</td><td>+0.09</td><td>0.694</td><td>合格</td></tr>
+  </table></div>
+  <div class="methods">
+    <div class="card"><b class="id">読み取れること</b><p>ポアソンは論文と ±0.1 dB 以内でほぼ一致。ガウスは全条件で 0.1〜0.3 dB 低く、Kodak24 σ=25 は基準ぎりぎりです。ガウスだけ一様に低いので、ノイズを [0,1] に切り詰める扱いの違いが疑わしい。シードを増やした確認と合わせて、E1 の前に 1 回だけ切り詰め無しでも測ります。</p></div>
+    <div class="card"><b class="id">実行時間（256²、1枚）</b><p>M4 の GPU（MPS）：約 42 秒（2 本同時だと 50〜65 秒）。kind 上のコンテナ（CPU 4 コア上限）：約 240 秒。M4 の CPU を 3 並列で回すと 1 枚 300 秒超。論文は GPU 20 秒・i9 CPU 80 秒。</p></div>
+    <div class="card"><b class="id">まだやっていないこと</b><p>BM3D の比較はまだ（E1 でまとめて流す）。シードは 1 つだけなので、ばらつきの幅は未計測。仮説 H1（斜め 45° の 1px 線は間引いた片方にしか写らない）は、間引きの部分だけ単体テストで確認済み。</p></div>
   </div>
 </section>
 
@@ -242,7 +268,7 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padd
     <li>うまくいかなかった実験も記録する。G1 で「線は壊れない」とわかった場合も、それ自体を結果として扱い、計画を見直す</li>
     <li>コードは feature ブランチで開発し、main へのマージはあなたが確認してから行う</li>
   </ol>
-  <div class="note"><b>まだ確認できていないこと</b><p>ZS-N2N の学習の細かい設定（最適化手法・学習率・反復回数・チャンネル数）は論文本文になく、公式の Colab ノートブックに書かれています。E0 の最初にノートブックを読んで合わせます。Noise2Mean と Zero-Shot CFC のコードが公開されているか、Quick, Draw! の利用条件も、使う前に確認します。</p></div>
+  <div class="note"><b>まだ確認できていないこと</b><p>ZS-N2N の学習設定は公式 Colab に合わせ、E0 で論文値を再現できました（上の結果）。Noise2Mean と Zero-Shot CFC のコードが公開されているか、Quick, Draw! の利用条件も、使う前に確認します。</p></div>
 </section>
 
 <footer>この計画は 2026年11月14日時点のものです。論文の数値は ZS-N2N 論文（arXiv 2303.11253 v3）の表から引用しました。ほかの論文の主張は要旨・紹介ページによるもので、まだ再現していません。計画は実験の結果を見ながら更新します。</footer>

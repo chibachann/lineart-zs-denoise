@@ -1,0 +1,781 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>論文再現スライド</title>
+<meta name="description" content="Zero-Shot Noise2Noise（CVPR 2023）の論文再現の発表用スライド。条件・結果・実画像比較・考察・次のステップ。">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 1280×720 の固定ステージを画面に合わせて拡大縮小する横スライド。1スライド1トピック。
+   色は研究計画ページ（docs/plan.html）・研究マップと同じ系統のトークンを使う */
+:root{
+  --bg:#E9ECF1; --stage:#F7F8FA; --surface:#FFFFFF; --fg:#17202D; --muted:#596476; --line:#D7DCE5;
+  --core:#3346C9; --core-soft:#E6E9FB;
+  --app:#0E7F72; --app-soft:#DDF2EE;
+  --adj:#A84C22; --adj-soft:#F7E6DC;
+  --focus:#B8860B; --focus-soft:#FBF1D6; --eq-bg:#EEF1F6;
+  --region:#F2B43C;
+  --f-display:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",sans-serif;
+  --f-body:"Noto Sans JP","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#090C12; --stage:#0F131B; --surface:#171C27; --fg:#E5E8EF; --muted:#9AA3B5; --line:#2A3242;
+  --core:#8B9BFF; --core-soft:#1E2550; --app:#4CC5B4; --app-soft:#123631;
+  --adj:#E8936A; --adj-soft:#3A2218; --focus:#E3B544; --focus-soft:#3A2F12; --eq-bg:#1B2130; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#090C12; --stage:#0F131B; --surface:#171C27; --fg:#E5E8EF; --muted:#9AA3B5; --line:#2A3242;
+  --core:#8B9BFF; --core-soft:#1E2550; --app:#4CC5B4; --app-soft:#123631;
+  --adj:#E8936A; --adj-soft:#3A2218; --focus:#E3B544; --focus-soft:#3A2F12; --eq-bg:#1B2130; color-scheme:dark}
+
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:20px;line-height:1.65;
+  -webkit-font-smoothing:antialiased}
+h1,h2,h3,p,figure,ul,ol{margin:0}
+h1,h2,h3{font-family:var(--f-display);line-height:1.3;text-wrap:balance}
+img{display:block;max-width:100%;height:auto}
+:focus-visible{outline:3px solid var(--focus);outline-offset:3px}
+.mono{font-family:var(--f-mono)}
+.num{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+
+/* ---- ステージ（16:9）と拡大縮小 ---- */
+.viewport{position:fixed;inset:0;display:grid;place-items:center}
+.stage{width:1280px;height:720px;position:relative;background:var(--stage);
+  transform-origin:center center;box-shadow:0 10px 40px rgba(0,0,0,.18);overflow:hidden}
+.slide{position:absolute;inset:0;padding:48px 64px 64px;display:flex;flex-direction:column;gap:22px}
+.slide[hidden]{display:none}
+.slide > header{display:flex;flex-direction:column;gap:6px}
+.eyebrow{font-family:var(--f-mono);font-size:14px;letter-spacing:.1em;text-transform:uppercase;color:var(--core)}
+.slide h2{font-size:38px;font-weight:900;letter-spacing:-.01em}
+.lead{font-size:20px;color:var(--muted);max-width:60em}
+.body{flex:1;min-height:0;display:grid;gap:28px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 24px;
+  display:flex;flex-direction:column;gap:10px;min-width:0}
+.card h3{font-size:22px}
+.card p,.card li{font-size:18px}
+.card ul{padding-left:1.1em;display:flex;flex-direction:column;gap:6px}
+.tag{display:inline-block;font-family:var(--f-mono);font-size:13px;border:1px solid currentColor;border-radius:99px;padding:0 10px;white-space:nowrap}
+.c-core{color:var(--core)} .c-app{color:var(--app)} .c-adj{color:var(--adj)} .c-mut{color:var(--muted)} .c-focus{color:var(--focus)}
+.src,.card p.src{font-size:13px;color:var(--muted)}
+.src code{font-family:var(--f-mono);font-size:12.5px}
+
+/* ---- フッター：スライド番号・進捗 ---- */
+.chrome{position:absolute;left:0;right:0;bottom:0;height:44px;display:flex;align-items:center;gap:16px;
+  padding:0 64px;font-size:13px;color:var(--muted);pointer-events:none}
+.chrome .deck{font-family:var(--f-mono);letter-spacing:.06em}
+.chrome .count{margin-left:auto;font-family:var(--f-mono);font-size:14px;color:var(--fg)}
+.progress{position:absolute;left:0;right:0;bottom:0;height:5px;background:var(--line)}
+.progress span{display:block;height:100%;background:var(--core);transition:width .25s ease}
+.navbtn{position:absolute;bottom:6px;width:34px;height:32px;border-radius:8px;border:1px solid var(--line);
+  background:var(--surface);color:var(--fg);font-size:16px;cursor:pointer;pointer-events:auto;line-height:1}
+.navbtn:disabled{opacity:.35;cursor:default}
+#prev{right:110px} #next{right:68px}
+.chrome .count{margin-right:96px}
+.hint{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);font-size:12px;color:var(--muted);
+  font-family:var(--f-mono);opacity:.8;pointer-events:none}
+
+/* ---- 1. タイトル ---- */
+.s-title{padding:0;display:grid;grid-template-columns:1.08fr .92fr;gap:0}
+.s-title .left{padding:76px 56px 80px 72px;display:flex;flex-direction:column;gap:22px;justify-content:center}
+.s-title h1{font-size:64px;font-weight:900;letter-spacing:-.02em;line-height:1.15}
+.s-title h1 small{display:block;font-size:30px;font-weight:700;color:var(--muted);margin-top:10px;letter-spacing:0}
+.s-title .sub{font-size:20px;color:var(--muted);max-width:30em}
+.kpis{display:flex;gap:28px;margin-top:8px}
+.kpi{display:flex;flex-direction:column;gap:0}
+.kpi b{white-space:nowrap;font-family:var(--f-mono);font-size:36px;font-weight:500;color:var(--core);line-height:1.15}
+.kpi span{font-size:14px;color:var(--muted)}
+.s-title .right{background:var(--eq-bg);display:flex;flex-direction:column;justify-content:center;gap:12px;padding:56px 48px}
+.pair-hero{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pair-hero img{width:100%;aspect-ratio:1;image-rendering:pixelated;border-radius:6px}
+.pair-hero figcaption{font-size:15px;font-weight:700;margin-top:6px;display:flex;justify-content:space-between}
+.pair-hero figcaption .num{font-weight:500;color:var(--muted)}
+.right .src{margin-top:4px}
+
+/* ---- 2. 課題 ---- */
+.s-problem .body{grid-template-columns:repeat(3,1fr);align-items:stretch}
+.need{position:relative}
+.need .what{font-size:15px;font-family:var(--f-mono);color:var(--muted)}
+.need h3{font-size:24px}
+.need .verdict{margin-top:auto;font-size:16px;font-weight:700}
+.need.zs{border:2px solid var(--core);background:linear-gradient(var(--core-soft),var(--surface) 40%)}
+.need svg{width:100%;height:120px}
+.question{background:var(--surface);border-left:6px solid var(--core);border-radius:10px;padding:14px 22px;
+  font-family:var(--f-display);font-size:24px;font-weight:700}
+
+/* ---- 3. 手法 ---- */
+.s-method .body{grid-template-columns:1.25fr 1fr}
+.dsfig{display:flex;align-items:center;gap:18px}
+.dsfig svg{flex:none}
+.s-method .real{display:grid;grid-template-columns:1fr auto 1fr 1fr;gap:10px;align-items:center}
+.s-method .real img{width:100%;image-rendering:pixelated;border-radius:4px}
+.s-method .real figcaption{font-family:var(--f-mono);font-size:13px;margin-top:2px;color:var(--muted)}
+.s-method .real .arrow{color:var(--muted);font-size:20px}
+.dsfig .note{font-size:16px;color:var(--muted);display:flex;flex-direction:column;gap:8px}
+.points{display:flex;flex-direction:column;gap:14px}
+.point{display:grid;grid-template-columns:44px 1fr;gap:12px;align-items:start}
+.point .n{font-family:var(--f-mono);font-size:26px;color:var(--core);line-height:1.2}
+.point h3{font-size:20px}
+.point p{font-size:16.5px;color:var(--muted)}
+.eq{font-family:var(--f-mono);font-size:15px;background:var(--eq-bg);border-radius:8px;padding:8px 12px;color:var(--fg)}
+
+/* ---- 4. 条件 ---- */
+.s-setup .body{grid-template-columns:repeat(4,1fr);grid-template-rows:auto 1fr}
+.setup-card h3{font-size:16px;color:var(--muted);font-weight:700;font-family:var(--f-body)}
+.setup-card .big{font-family:var(--f-display);font-size:28px;font-weight:900;line-height:1.25}
+.setup-card p{font-size:15.5px;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips .tag{font-size:15px;padding:1px 12px}
+.runs{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr;gap:36px;align-items:center}
+.runs .total{font-family:var(--f-mono);font-size:84px;line-height:1;color:var(--core)}
+.runs .total small{font-size:22px;color:var(--muted);margin-left:6px}
+.formula{font-size:22px;display:flex;flex-wrap:wrap;align-items:baseline;gap:10px}
+.formula .num{font-size:26px}
+.formula .op{color:var(--muted)}
+.runs ul{margin-top:10px;font-size:16px;color:var(--muted);display:flex;flex-direction:column;gap:2px;padding-left:1.1em}
+
+/* ---- 5. 結果表 ---- */
+.s-result .body{grid-template-columns:1fr 290px}
+table.rt{width:100%;border-collapse:collapse;background:var(--surface);border-radius:12px;overflow:hidden;font-size:16px}
+.rt th,.rt td{padding:3px 12px;line-height:1.45;border-top:1px solid var(--line);text-align:right;white-space:nowrap}
+.rt thead th{border-top:0;background:var(--eq-bg);font-size:13px;color:var(--muted);font-weight:500}
+.rt th:nth-child(-n+2),.rt td:nth-child(-n+2){text-align:left}
+.rt td{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.rt td.ds{font-family:var(--f-body);font-weight:500}
+.rt tr.grp td{background:var(--stage);font-family:var(--f-body);font-size:13px;font-weight:700;color:var(--muted);text-align:left;padding:4px 12px}
+.rt td.mine{color:var(--fg);font-weight:500}
+.rt td.paper{color:var(--muted)}
+.rt td.bar{width:250px;padding-block:2px}
+.dbar{position:relative;height:22px}
+.dbar .zero{position:absolute;left:50%;top:-4px;bottom:-4px;width:1px;background:var(--fg);opacity:.5}
+.dbar .tol{position:absolute;top:3px;bottom:3px;background:var(--app-soft);border-radius:3px}
+.dbar .v{position:absolute;top:6px;height:10px;border-radius:2px}
+.dbar .v.neg{background:var(--adj)} .dbar .v.pos{background:var(--core)}
+.dbar .lab{position:absolute;top:0;font-size:13.5px;line-height:22px}
+.rt td.ok{color:var(--app);font-family:var(--f-body);font-weight:700;font-size:14px}
+.side{display:flex;flex-direction:column;gap:14px}
+.side .card{gap:4px;padding:16px 20px}
+.side .card b{font-family:var(--f-mono);font-size:34px;font-weight:500;line-height:1.2}
+.side .card span{font-size:14.5px;color:var(--muted)}
+.legend{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:22px;height:10px;border-radius:2px;vertical-align:middle;margin-right:6px}
+
+/* ---- 6/7. 除去前後 ---- */
+.s-ba .body{grid-template-columns:1fr 320px;gap:40px}
+.ba-grid{display:grid;grid-template-columns:repeat(3,200px);gap:8px 16px;align-content:start}
+.ba-grid figure{display:flex;flex-direction:column;gap:5px}
+.ba-grid figcaption{font-size:15px;font-weight:700;display:flex;justify-content:space-between;align-items:baseline}
+.ba-grid figcaption .num{font-weight:500;font-size:14px;color:var(--muted)}
+.frame{position:relative;width:200px;height:200px}
+.frame img{width:100%;height:100%;border-radius:4px}
+.region{position:absolute;left:var(--x);top:var(--y);width:31.25%;height:31.25%;
+  border:2px solid var(--region);box-shadow:0 0 0 1px rgba(0,0,0,.6)}
+.zoom img{width:200px;height:200px;image-rendering:pixelated;border-radius:4px;border:2px solid var(--region)}
+.rowlab{grid-column:1/-1;font-size:13px;color:var(--muted);margin:0 0 -4px;font-family:var(--f-mono)}
+.ba-side{display:flex;flex-direction:column;gap:12px}
+.ba-side .card{padding:16px 22px;gap:6px}
+.conds{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.conds .gl{grid-column:1/-1;font-size:13px;color:var(--muted);margin-top:4px}
+.cond{font:inherit;font-family:var(--f-mono);font-size:15px;padding:5px 0;border-radius:99px;
+  border:1px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer}
+.cond[aria-pressed="true"]{background:var(--fg);color:var(--stage);border-color:var(--fg)}
+.psnr-jump{display:flex;align-items:baseline;gap:10px;font-family:var(--f-mono)}
+.psnr-jump .from{font-size:26px;color:var(--muted)}
+.psnr-jump .arrow{color:var(--muted)}
+.psnr-jump .to{font-size:40px;color:var(--app)}
+.psnr-jump .u{font-size:15px;color:var(--muted)}
+.card p.gain{font-size:15px;color:var(--muted)}
+.gain b{font-family:var(--f-mono);color:var(--fg);font-weight:500}
+
+/* ---- 8. ノイズ差分 ---- */
+.s-diff .body{grid-template-columns:auto auto;justify-content:space-between;align-content:start;gap:14px 36px}
+.dblock h3{font-size:17px;margin-bottom:6px}
+.dblock h3 span{font-weight:500;color:var(--muted);font-size:15px}
+.drow{display:grid;grid-template-columns:repeat(3,168px);gap:8px}
+.drow figure{display:flex;flex-direction:column;gap:2px}
+.drow img{width:168px;height:168px;border-radius:3px}
+.drow figcaption{font-family:var(--f-mono);font-size:13px;color:var(--muted)}
+.scale{display:flex;align-items:center;gap:10px;font-size:14px;color:var(--muted);white-space:nowrap}
+.ramp{width:160px;height:10px;background:linear-gradient(90deg,#000,#fff);border:1px solid #737a70}
+
+/* ---- 9. 考察 ---- */
+.s-disc .body{grid-template-columns:1fr 1.12fr;gap:28px}
+.disc-left{display:flex;flex-direction:column;gap:14px}
+.obs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.obs .card{padding:14px 18px;gap:2px}
+.obs b{font-family:var(--f-mono);font-size:30px;font-weight:500;line-height:1.2}
+.obs span{font-size:14.5px;color:var(--muted)}
+.hyp{border-left:5px solid var(--focus);background:var(--focus-soft);border-radius:10px;padding:14px 18px;display:flex;gap:16px;align-items:center}
+.hyp p{font-size:16.5px}
+.hyp svg{flex:none}
+table.vt{width:100%;border-collapse:collapse;background:var(--surface);font-size:15px}
+.vt th,.vt td{padding:3px 12px;border-top:1px solid var(--line);text-align:right;white-space:nowrap}
+.vt thead th{border-top:0;background:var(--eq-bg);font-size:12.5px;color:var(--muted);font-weight:500;white-space:normal;line-height:1.35;vertical-align:bottom}
+.vt th:first-child,.vt td:first-child{text-align:left}
+.vt td{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.vt .d{font-size:12.5px;margin-left:4px}
+.vt .d.neg{color:var(--adj)} .vt .d.pos{color:var(--core)}
+.vbox{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.vbox h3{font-size:16.5px;padding:8px 14px 6px;display:flex;align-items:center;gap:10px}
+.wip{font-family:var(--f-mono);font-size:12px;background:var(--focus-soft);color:var(--focus);border-radius:99px;padding:1px 10px;font-weight:500}
+.done{font-family:var(--f-mono);font-size:12px;background:var(--app-soft);color:var(--app);border-radius:99px;padding:1px 10px;font-weight:500}
+.vnote{font-size:14px;line-height:1.55;padding:6px 14px 10px;color:var(--muted)}
+.vnote b{color:var(--fg)}
+.disc-right{display:flex;flex-direction:column;gap:14px}
+
+/* ---- 10. 次のステップ ---- */
+.s-next .body{grid-template-columns:1fr 1fr;gap:32px}
+.ladder{display:flex;flex-direction:column;gap:10px}
+.rung{display:grid;grid-template-columns:40px 1fr auto;gap:12px;align-items:center;background:var(--surface);
+  border:1px solid var(--line);border-radius:10px;padding:11px 16px}
+.rung .g{font-family:var(--f-mono);font-size:22px;color:var(--muted)}
+.rung h3{font-size:18px}
+.rung p{font-size:14.5px;color:var(--muted);line-height:1.5}
+.rung.done-r{border-color:var(--app)} .rung.done-r .g{color:var(--app)}
+.rung.now{border:2px solid var(--core);background:var(--core-soft)} .rung.now .g{color:var(--core)}
+.core-fig{display:flex;flex-direction:column;gap:10px}
+.core-fig svg{width:100%;height:auto}
+.bridge{display:flex;flex-direction:column;gap:6px;padding:14px 20px 14px 2.2em!important}
+.bridge li{font-size:15.5px;line-height:1.55}
+
+/* 小さい画面向けの注意書き（ステージ自体は縮小で収める） */
+@media (max-width:700px){.hint{display:none}}
+@media print{
+  html,body{overflow:visible;height:auto;background:#fff}
+  .viewport{position:static;display:block}
+  .stage{transform:none!important;box-shadow:none;page-break-after:always}
+  .navbtn,.hint{display:none}
+}
+</style>
+</head>
+<body>
+<div class="viewport">
+<main class="stage" id="stage" aria-roledescription="スライド" aria-live="polite">
+
+<!-- 1. タイトル -->
+<section class="slide s-title" id="s1" aria-label="タイトル">
+  <div class="left">
+    <p class="eyebrow">Paper reproduction · 線画ゼロショット除去 研究</p>
+    <h1>論文再現<small>ZS-N2N 再現実験</small></h1>
+    <p class="sub">ノイズ画像1枚だけで学習するノイズ除去 Zero-Shot Noise2Noise（CVPR 2023）を自前で実装し、論文 Table 1 の数値を再現できるか確かめた。</p>
+    <div class="kpis">
+      <div class="kpi"><b>12/12</b><span>条件で合格</span></div>
+      <div class="kpi"><b>−0.30〜+0.09</b><span>論文値との差（dB）</span></div>
+      <div class="kpi"><b>252</b><span>ラン（画像×条件）</span></div>
+    </div>
+    <p class="src">2026年11月15日 · 結果は <code>results/e0_gauss/0e3e6a0177</code>・<code>results/e0_poiss/eefdf7a422</code></p>
+  </div>
+  <div class="right">
+    <figure>
+      <div class="pair-hero">
+        <figure><img src="e0-visual-assets/kodim08-gauss25-noisy-crop.png" alt="Kodak24 kodim08 のノイズ画像（ガウス σ=25）の拡大" width="80" height="80"><figcaption>ノイズ画像 <span class="num">20.48 dB</span></figcaption></figure>
+        <figure><img src="e0-visual-assets/kodim08-gauss25-denoised-crop.png" alt="同じ箇所の除去結果の拡大" width="80" height="80"><figcaption>除去結果 <span class="num">27.77 dB</span></figcaption></figure>
+      </div>
+    </figure>
+    <p class="src">Kodak24 kodim08 · ガウス σ=25 · 80×80 px を最近傍で拡大（PSNR は画像全体 256×256）</p>
+  </div>
+</section>
+
+<!-- 2. 論文：解く課題 -->
+<section class="slide s-problem" id="s2" aria-label="論文：解く課題" hidden>
+  <header>
+    <p class="eyebrow">論文紹介 1/2 · Mansour &amp; Heckel, CVPR 2023</p>
+    <h2>Zero-Shot Noise2Noise：何を解く論文か</h2>
+  </header>
+  <p class="question">クリーンな教師データも、大量のノイズ画像もなしに、<br>目の前の<span class="c-core">ノイズ画像1枚だけ</span>でノイズ除去を学習できるか。</p>
+  <div class="body">
+    <div class="card need">
+      <span class="what">教師あり（DnCNN など）</span>
+      <h3>ノイズ画像 ＋ 正解画像</h3>
+      <svg viewBox="0 0 240 120" aria-hidden="true">
+        <g fill="none" stroke="currentColor" class="c-mut">
+          <rect x="14" y="20" width="60" height="60" rx="4"/><rect x="22" y="28" width="60" height="60" rx="4" fill="var(--surface)"/><rect x="30" y="36" width="60" height="60" rx="4" fill="var(--eq-bg)"/>
+          <rect x="140" y="20" width="60" height="60" rx="4"/><rect x="148" y="28" width="60" height="60" rx="4" fill="var(--surface)"/><rect x="156" y="36" width="60" height="60" rx="4" fill="var(--surface)"/>
+        </g>
+        <text x="60" y="114" font-size="13" text-anchor="middle" fill="var(--muted)">ノイズ画像 × 多数</text>
+        <text x="186" y="114" font-size="13" text-anchor="middle" fill="var(--muted)">正解画像 × 多数</text>
+        <text x="120" y="64" font-size="20" text-anchor="middle" fill="var(--muted)">＋</text>
+      </svg>
+      <p>きれいな正解との対が大量に必要。線画の実スキャンでは正解が手に入らない。</p>
+      <p class="verdict c-adj">正解データが必要</p>
+    </div>
+    <div class="card need">
+      <span class="what">自己教師あり（Noise2Void など）</span>
+      <h3>ノイズ画像だけ（大量）</h3>
+      <svg viewBox="0 0 240 120" aria-hidden="true">
+        <g fill="var(--eq-bg)" stroke="var(--muted)">
+          <rect x="46" y="14" width="60" height="60" rx="4"/><rect x="58" y="24" width="60" height="60" rx="4"/><rect x="70" y="34" width="60" height="60" rx="4"/><rect x="82" y="44" width="60" height="60" rx="4"/><rect x="94" y="54" width="60" height="60" rx="4"/>
+        </g>
+      </svg>
+      <p>正解は要らないが、通常は同じ種類のノイズ画像を多数集めて大きなネットを学習する。</p>
+      <p class="verdict c-adj">データ収集と学習が重い</p>
+    </div>
+    <div class="card need zs">
+      <span class="what c-core">ゼロショット（本論文）</span>
+      <h3>ノイズ画像 1枚</h3>
+      <svg viewBox="0 0 240 120" aria-hidden="true">
+        <rect x="90" y="24" width="72" height="72" rx="5" fill="var(--eq-bg)" stroke="var(--core)" stroke-width="2"/>
+        <text x="126" y="66" font-size="16" text-anchor="middle" fill="var(--core)" font-family="IBM Plex Mono,monospace">×1</text>
+      </svg>
+      <p>その画像から学習ペアを作り、約2.2万パラメータの小さなネットを数千反復だけ学習する。</p>
+      <p class="verdict c-app">外部データ不要・CPUでも実用的</p>
+    </div>
+  </div>
+</section>
+
+<!-- 3. 論文：手法の要点 -->
+<section class="slide s-method" id="s3" aria-label="論文：手法の要点" hidden>
+  <header>
+    <p class="eyebrow">論文紹介 2/2 · 手法の要点</p>
+    <h2>1枚を2枚に間引き、互いを教師にする</h2>
+  </header>
+  <div class="body">
+    <div class="card">
+      <h3>2×2 ダウンサンプリングで学習ペア D1 / D2 を作る</h3>
+      <div class="dsfig">
+        <svg width="260" height="150" viewBox="0 0 260 150" role="img" aria-label="2×2 ブロックのうち右上と左下の平均が D1、左上と右下の平均が D2 になる図">
+          <g font-family="IBM Plex Mono,monospace" font-size="13">
+            <text x="6" y="14" fill="var(--muted)">2×2 ブロック</text>
+            <rect x="6" y="26" width="56" height="56" fill="var(--core-soft)" stroke="var(--core)"/>
+            <rect x="62" y="26" width="56" height="56" fill="var(--adj-soft)" stroke="var(--adj)"/>
+            <rect x="6" y="82" width="56" height="56" fill="var(--adj-soft)" stroke="var(--adj)"/>
+            <rect x="62" y="82" width="56" height="56" fill="var(--core-soft)" stroke="var(--core)"/>
+            <text x="34" y="58" text-anchor="middle" fill="var(--core)">a</text>
+            <text x="90" y="58" text-anchor="middle" fill="var(--adj)">b</text>
+            <text x="34" y="114" text-anchor="middle" fill="var(--adj)">c</text>
+            <text x="90" y="114" text-anchor="middle" fill="var(--core)">d</text>
+            <path d="M126 60 L150 60" stroke="var(--adj)" stroke-width="1.5" marker-end="url(#ar1)"/>
+            <path d="M126 104 L150 104" stroke="var(--core)" stroke-width="1.5" marker-end="url(#ar2)"/>
+            <rect x="156" y="40" width="40" height="40" fill="var(--adj-soft)" stroke="var(--adj)"/>
+            <rect x="156" y="84" width="40" height="40" fill="var(--core-soft)" stroke="var(--core)"/>
+            <text x="204" y="56" fill="var(--adj)">D1</text><text x="204" y="72" fill="var(--muted)" font-size="11">(b+c)/2</text>
+            <text x="204" y="100" fill="var(--core)">D2</text><text x="204" y="116" fill="var(--muted)" font-size="11">(a+d)/2</text>
+          </g>
+          <defs>
+            <marker id="ar1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--adj)"/></marker>
+            <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--core)"/></marker>
+          </defs>
+        </svg>
+        <div class="note"><p>各 2×2 ブロックの対角の画素を平均して、半分の解像度の画像を2枚作る。</p><p>2枚は<b style="color:var(--fg)">同じ絵 ＋ ほぼ独立なノイズ</b>とみなせる。</p></div>
+      </div>
+      <div class="real">
+        <figure><img src="e0-visual-assets/kodim08-gauss25-noisy.png" alt="ノイズ画像 256×256" width="256" height="256"><figcaption>ノイズ画像 256×256</figcaption></figure>
+        <span class="arrow" aria-hidden="true">→</span>
+        <figure><img src="e0-visual-assets/kodim08-gauss25-d1.png" alt="実画像から作った D1" width="128" height="128"><figcaption>D1 128×128</figcaption></figure>
+        <figure><img src="e0-visual-assets/kodim08-gauss25-d2.png" alt="実画像から作った D2" width="128" height="128"><figcaption>D2 128×128</figcaption></figure>
+      </div>
+      <p class="src">実画像は Kodak24 kodim08（ガウス σ=25）の保存済みノイズ入力から作成。</p>
+    </div>
+    <div class="points">
+      <div class="point"><span class="n">1</span><div><h3>互いを教師にする</h3><p>D1 から D2 を、D2 から D1 を予測させる。ノイズは予測できないので、ネットは「絵」だけを学ぶ（Noise2Noise の考え方）。</p></div></div>
+      <div class="point"><span class="n">2</span><div><h3>約 2.2 万パラメータの小さなネット</h3><p>3×3 畳み込み2層＋1×1 畳み込み1層、中間 48 チャネル。実装では 22,275 パラメータ。1枚ごとに 2,000 反復学習する。</p></div></div>
+      <div class="point"><span class="n">3</span><div><h3>残差学習＋一貫性の損失</h3><p>ネットはノイズを推定し、入力から引く。間引いてから除去しても、除去してから間引いても同じになるよう一貫性の項を足す。</p></div></div>
+      <p class="eq">L = L<sub>残差</sub>(D1↔D2) + L<sub>一貫性</sub>　／　出力 = y − f<sub>θ</sub>(y)</p>
+    </div>
+  </div>
+</section>
+
+<!-- 4. 再現の条件 -->
+<section class="slide s-setup" id="s4" aria-label="再現の条件" hidden>
+  <header>
+    <p class="eyebrow">再現の条件</p>
+    <h2>論文 Table 1 と同じ 2 データセット × 6 ノイズ条件</h2>
+  </header>
+  <div class="body">
+    <div class="card setup-card">
+      <h3>データセット</h3>
+      <p class="big">Kodak24<br>McMaster18</p>
+      <p>24 枚 ＋ 18 枚。各画像の中央 256×256 px を使用。</p>
+    </div>
+    <div class="card setup-card">
+      <h3>ガウスノイズ</h3>
+      <div class="chips"><span class="tag c-core">σ = 10</span><span class="tag c-core">σ = 25</span><span class="tag c-core">σ = 50</span></div>
+      <p>0–255 スケールの標準偏差。加えたあと [0, 1] に切り詰め。</p>
+    </div>
+    <div class="card setup-card">
+      <h3>ポアソンノイズ</h3>
+      <div class="chips"><span class="tag c-adj">λ = 50</span><span class="tag c-adj">λ = 25</span><span class="tag c-adj">λ = 10</span></div>
+      <p>Poisson(λx) / λ。λ が小さいほど強い。</p>
+    </div>
+    <div class="card setup-card">
+      <h3>評価指標</h3>
+      <p class="big">PSNR / SSIM</p>
+      <p>値域 [0, 1]。合格は論文値 ±0.5 dB（Kodak24 σ=25 は ±0.3 dB）。</p>
+    </div>
+    <div class="card runs">
+      <div class="total num">252<small>ラン</small></div>
+      <div>
+        <p class="formula"><span class="num">(24 + 18)</span><span>枚</span><span class="op">×</span><span class="num">6</span><span>ノイズ条件</span><span class="op">×</span><span class="num">1</span><span>シード</span><span class="op">=</span><span class="num">252</span></p>
+        <ul>
+          <li>ノイズはシード 0 で事前に作って保存し、再利用</li>
+          <li>ネットの初期値もシード 0</li>
+          <li>Adam、学習率 0.001（1,500 反復で半減）、2,000 反復</li>
+          <li>Apple M4・MPS で 4 並列。1枚あたり約 35〜65 秒</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 5. 結果 -->
+<section class="slide s-result" id="s5" aria-label="結果" hidden>
+  <header>
+    <p class="eyebrow">結果</p>
+    <h2>全 12 条件で論文値との差は −0.30〜+0.09 dB</h2>
+  </header>
+  <div class="body">
+    <table class="rt" aria-label="条件別の PSNR と論文値との差">
+      <thead><tr><th>データ</th><th>強さ</th><th>再現 PSNR</th><th>論文</th><th>差（再現 − 論文, dB）</th><th>SSIM</th><th>判定</th></tr></thead>
+      <tbody id="rt-body"></tbody>
+    </table>
+    <div class="side">
+      <div class="card"><b class="c-app">12 / 12</b><span>すべての条件で合格範囲に入った</span></div>
+      <div class="card"><b class="c-adj">−0.21</b><span>ガウス 6 条件の平均差（dB）。6 条件すべてマイナス</span></div>
+      <div class="card"><b class="c-core">+0.02</b><span>ポアソン 6 条件の平均差（dB）。ほぼ論文どおり</span></div>
+      <div class="legend">
+        <span><i style="background:var(--app-soft)"></i>合格範囲（±0.5 dB、Kodak24 σ=25 は ±0.3 dB）</span>
+        <span><i style="background:var(--adj)"></i>論文より低い　<i style="background:var(--core)"></i>論文より高い</span>
+        <span>各条件の全画像平均（シード 1 本）。<code class="mono">summary.csv</code> から転記</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 6. 除去前後：Kodak24 -->
+<section class="slide s-ba" id="s6" aria-label="除去前後 Kodak24 kodim08" hidden data-img="kodim08">
+  <header>
+    <p class="eyebrow">Before / After 1/2 · Kodak24 kodim08.png</p>
+    <h2>窓枠や外壁の細部を残したまま、粒状のノイズが消える</h2>
+  </header>
+  <div class="body">
+    <div class="ba-grid" style="--x:53.515625%;--y:28.125%">
+      <figure><div class="frame"><img data-k="clean" alt="原画像" width="256" height="256"><span class="region"></span></div><figcaption>原画像</figcaption></figure>
+      <figure><div class="frame"><img data-k="noisy" alt="ノイズ画像" width="256" height="256"><span class="region"></span></div><figcaption>ノイズ画像 <span class="num" data-v="in"></span></figcaption></figure>
+      <figure><div class="frame"><img data-k="denoised" alt="除去結果" width="256" height="256"><span class="region"></span></div><figcaption>除去結果 <span class="num" data-v="out"></span></figcaption></figure>
+      <p class="rowlab">↓ 枠内 80×80 px を最近傍で拡大</p>
+      <figure class="zoom"><img data-k="clean-crop" alt="原画像の拡大" width="80" height="80"></figure>
+      <figure class="zoom"><img data-k="noisy-crop" alt="ノイズ画像の拡大" width="80" height="80"></figure>
+      <figure class="zoom"><img data-k="denoised-crop" alt="除去結果の拡大" width="80" height="80"></figure>
+    </div>
+    <div class="ba-side"></div>
+  </div>
+</section>
+
+<!-- 7. 除去前後：McMaster18 -->
+<section class="slide s-ba" id="s7" aria-label="除去前後 McMaster18 12" hidden data-img="12">
+  <header>
+    <p class="eyebrow">Before / After 2/2 · McMaster18 12.tif</p>
+    <h2>細い網目と明るさの違う面でも、構造を保って除去できる</h2>
+  </header>
+  <div class="body">
+    <div class="ba-grid" style="--x:35.546875%;--y:15.234375%">
+      <figure><div class="frame"><img data-k="clean" alt="原画像" width="256" height="256"><span class="region"></span></div><figcaption>原画像</figcaption></figure>
+      <figure><div class="frame"><img data-k="noisy" alt="ノイズ画像" width="256" height="256"><span class="region"></span></div><figcaption>ノイズ画像 <span class="num" data-v="in"></span></figcaption></figure>
+      <figure><div class="frame"><img data-k="denoised" alt="除去結果" width="256" height="256"><span class="region"></span></div><figcaption>除去結果 <span class="num" data-v="out"></span></figcaption></figure>
+      <p class="rowlab">↓ 枠内 80×80 px を最近傍で拡大</p>
+      <figure class="zoom"><img data-k="clean-crop" alt="原画像の拡大" width="80" height="80"></figure>
+      <figure class="zoom"><img data-k="noisy-crop" alt="ノイズ画像の拡大" width="80" height="80"></figure>
+      <figure class="zoom"><img data-k="denoised-crop" alt="除去結果の拡大" width="80" height="80"></figure>
+    </div>
+    <div class="ba-side"></div>
+  </div>
+</section>
+
+<!-- 8. ノイズ差分 -->
+<section class="slide s-diff" id="s8" aria-label="ノイズ差分" hidden>
+  <header>
+    <p class="eyebrow">ノイズ差分 · |ノイズ画像 − 原画像|</p>
+    <h2>ガウスは一様、ポアソンは明るい所ほど強い</h2>
+  </header>
+  <div class="body">
+    <div class="dblock"><h3>Kodak24 kodim08 <span>· ガウス</span></h3><div class="drow" data-diff="kodim08" data-kind="gauss"></div></div>
+    <div class="dblock"><h3>McMaster18 12 <span>· ガウス</span></h3><div class="drow" data-diff="12" data-kind="gauss"></div></div>
+    <div class="dblock"><h3>Kodak24 kodim08 <span>· ポアソン</span></h3><div class="drow" data-diff="kodim08" data-kind="poiss"></div></div>
+    <div class="dblock"><h3>McMaster18 12 <span>· ポアソン</span></h3><div class="drow" data-diff="12" data-kind="poiss"></div></div>
+  </div>
+  <div class="scale"><span>平均絶対差</span><span class="num">0</span><span class="ramp"></span><span class="num">0.25 以上</span><span>画素値 0–1・RGB 平均・全パネル同じ尺度。ポアソンでは McMaster18 の網の奥の明部に差分が集中する。</span></div>
+</section>
+
+<!-- 9. 考察 -->
+<section class="slide s-disc" id="s9" aria-label="考察" hidden>
+  <header>
+    <p class="eyebrow">考察</p>
+    <h2>ガウスだけわずかに低い：切り詰め方の違いが有力な仮説</h2>
+  </header>
+  <div class="body">
+    <div class="disc-left">
+      <div class="obs">
+        <div class="card"><b class="c-adj num">6 / 6</b><span>ガウスは全条件で論文より低い（−0.30〜−0.12 dB）</span></div>
+        <div class="card"><b class="c-core num">±0.09</b><span>ポアソンは論文値の上下に散る（−0.07〜+0.09 dB）</span></div>
+      </div>
+      <div class="hyp">
+        <svg width="170" height="112" viewBox="0 0 170 112" role="img" aria-label="暗い画素ではガウスノイズの負の側が0で切り詰められ、分布が偏る図">
+          <line x1="40" y1="92" x2="166" y2="92" stroke="var(--muted)"/>
+          <line x1="40" y1="14" x2="40" y2="96" stroke="var(--fg)" stroke-width="1.5"/>
+          <path d="M8 92 C24 92 30 40 48 24 C62 12 70 40 86 76 C94 90 100 92 112 92" fill="none" stroke="var(--muted)" stroke-dasharray="4 3"/>
+          <path d="M40 92 L40 30 C48 22 56 18 62 26 C70 40 76 64 86 76 C94 90 100 92 112 92" fill="var(--adj-soft)" stroke="var(--adj)" stroke-width="1.5"/>
+          <rect x="37" y="10" width="6" height="22" fill="var(--adj)"/>
+          <text x="40" y="108" text-anchor="middle" font-size="11" fill="var(--muted)" font-family="IBM Plex Mono,monospace">0</text>
+          <text x="96" y="108" font-size="11" fill="var(--muted)">画素値</text>
+          <text x="54" y="12" font-size="11" fill="var(--adj)">0 に張り付く</text>
+        </svg>
+        <p><b>仮説：</b>本実験はガウスノイズを加えたあと [0, 1] に<b>切り詰めた</b>。暗部・明部ではノイズの片側が削られて偏り、論文と入力の分布がずれる。ポアソンは切り詰めていないので差が出ない、と説明がつく。</p>
+      </div>
+      <p class="src">切り詰めは <code>src/zsdn/data.py</code> の <code>add_noise(clip=True)</code>。ポアソンは切り詰めなし。</p>
+    </div>
+    <div class="disc-right">
+      <div class="vbox">
+        <h3>検証ラン ①：切り詰めなし <span class="done">完了</span></h3>
+        <table class="vt">
+          <thead><tr><th>Kodak24 ガウス</th><th>論文</th><th>切り詰めあり（本実験）</th><th>切り詰めなし</th></tr></thead>
+          <tbody>
+            <tr><td>σ = 10</td><td>33.69</td><td>33.39<span class="d neg">−0.30</span></td><td>33.47<span class="d neg">−0.22</span></td></tr>
+            <tr><td>σ = 25</td><td>29.07</td><td>28.79<span class="d neg">−0.28</span></td><td>29.00<span class="d neg">−0.07</span></td></tr>
+            <tr><td>σ = 50</td><td>24.81</td><td>24.69<span class="d neg">−0.12</span></td><td>25.20<span class="d pos">+0.39</span></td></tr>
+          </tbody>
+        </table>
+        <p class="vnote">σ=10・25 では差が縮んだ。一方 σ=50 では論文を <b>0.39 dB 上回り</b>、向きが逆になる。切り詰めだけで全部は説明できず、<b>結論は保留</b>。</p>
+      </div>
+      <div class="vbox">
+        <h3>検証ラン ②：ネット初期値のシード 1・2 <span class="wip">途中経過 90 / 144 ラン</span></h3>
+        <table class="vt">
+          <thead><tr><th>Kodak24 ガウス<br>（同じ 15 枚で比較）</th><th>シード 0（本実験）</th><th>シード 1</th><th>シード 2</th></tr></thead>
+          <tbody>
+            <tr><td>σ = 10</td><td>33.44</td><td>33.31</td><td>33.37</td></tr>
+            <tr><td>σ = 25</td><td>28.83</td><td>28.83</td><td>28.87</td></tr>
+            <tr><td>σ = 50</td><td>24.74</td><td>24.73</td><td>24.71</td></tr>
+          </tbody>
+        </table>
+        <p class="vnote">シードによる揺れは同じ画像で <b>0.13 dB 以内</b>。今のところ、−0.3 dB 前後の差をシードの偶然だけで説明するのは難しい。<br><span class="src">2026-11-15 23:23 時点（24 枚中 15 枚）。実行中のため数値は変わりうる。</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 10. 次のステップ -->
+<section class="slide s-next" id="s10" aria-label="次のステップ" hidden>
+  <header>
+    <p class="eyebrow">次のステップ</p>
+    <h2>再現できた基準手法で、線画の線がどう壊れるかを測る</h2>
+  </header>
+  <div class="body">
+    <div class="ladder">
+      <div class="rung done-r"><span class="g">1</span><div><h3>再現の達成</h3><p>ZS-N2N を自前実装し、論文 Table 1 を再現する</p></div><span class="tag c-app">達成</span></div>
+      <div class="rung now"><span class="g">2</span><div><h3>原因の特定 ― 線の壊れ方調査</h3><p>線の太さ・向きを制御した合成線画で、どの線が消えるかを測る</p></div><span class="tag c-core">実施中</span></div>
+      <div class="rung"><span class="g">3</span><div><h3>線を守る改良（本命）</h3><p>間引き方を混ぜる・線の向きに合わせて間引く・線の周りの誤差を重く数える など</p></div><span class="tag c-mut">次</span></div>
+      <div class="rung"><span class="g">4</span><div><h3>実スキャンへの拡張と報告</h3><p>紙の質感・JPEG・スキャンのムラなど、独立でないノイズへ広げる</p></div><span class="tag c-mut">その先</span></div>
+    </div>
+    <div class="core-fig">
+      <div class="card">
+        <h3>なぜ線画で壊れると予想するか</h3>
+        <svg viewBox="0 0 440 150" role="img" aria-label="横線は D1 と D2 の両方に写るが、斜め 45 度の 1 ピクセル線は片方にしか写らない図">
+          <g font-family="IBM Plex Mono,monospace" font-size="12" fill="var(--muted)">
+            <text x="0" y="12">横線</text>
+            <text x="0" y="90">斜め 45°</text>
+          </g>
+          <g id="hz">
+            <!-- 横線：4×4 の画像の2行目が黒 -->
+            <g transform="translate(0,20)">
+              <rect width="48" height="48" fill="var(--surface)" stroke="var(--line)"/>
+              <rect y="12" width="48" height="12" fill="var(--fg)"/>
+              <path d="M24 0V48M0 24H48" stroke="var(--muted)" stroke-width=".8"/>
+            </g>
+            <text x="64" y="50" font-size="16" fill="var(--muted)">→</text>
+            <g transform="translate(90,32)"><rect width="24" height="24" fill="var(--surface)" stroke="var(--adj)"/><rect width="24" height="12" fill="var(--fg)" opacity=".5"/></g>
+            <g transform="translate(122,32)"><rect width="24" height="24" fill="var(--surface)" stroke="var(--core)"/><rect width="24" height="12" fill="var(--fg)" opacity=".5"/></g>
+            <text x="154" y="44" font-size="12" fill="var(--app)">D1 と D2 に</text>
+            <text x="154" y="60" font-size="12" fill="var(--app)">同じ濃さで写る</text>
+          </g>
+          <g transform="translate(0,78)">
+            <g transform="translate(0,20)">
+              <rect width="48" height="48" fill="var(--surface)" stroke="var(--line)"/>
+              <rect x="0" y="0" width="12" height="12" fill="var(--fg)"/><rect x="12" y="12" width="12" height="12" fill="var(--fg)"/>
+              <rect x="24" y="24" width="12" height="12" fill="var(--fg)"/><rect x="36" y="36" width="12" height="12" fill="var(--fg)"/>
+              <path d="M24 0V48M0 24H48" stroke="var(--muted)" stroke-width=".8"/>
+            </g>
+            <text x="64" y="50" font-size="16" fill="var(--muted)">→</text>
+            <g transform="translate(90,32)"><rect width="24" height="24" fill="var(--surface)" stroke="var(--adj)"/></g>
+            <g transform="translate(122,32)"><rect width="24" height="24" fill="var(--surface)" stroke="var(--core)"/><rect width="12" height="12" fill="var(--fg)"/><rect x="12" y="12" width="12" height="12" fill="var(--fg)"/></g>
+            <text x="154" y="44" font-size="12" fill="var(--adj)">D2 にだけ写る</text>
+            <text x="154" y="60" font-size="12" fill="var(--adj)">→「予測できない成分」として消される？</text>
+          </g>
+        </svg>
+        <p class="src">左：4×4 の 1 px 線と 2×2 ブロック。中：間引いた D1（右上＋左下）と D2（左上＋右下）。概念図でデータではない。</p>
+      </div>
+      <ul class="bridge card">
+        <li>今回の実装・設定・ノイズの保存方法を、そのまま線の壊れ方調査の<b>基準</b>に使う</li>
+        <li>写真で論文どおり動くと確かめたので、線画で線が消えても<b>実装の誤りではなく手法の性質</b>として議論できる</li>
+        <li>線の壊れ方調査はノイズを<b>切り詰めない</b>設定で進めている。切り詰めの影響は、考察の検証ランで切り分けを続ける</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 共通のフッター -->
+<div class="chrome" aria-hidden="false">
+  <span class="deck">論文再現 · ZS-N2N</span>
+  <span class="count" id="count">1 / 10</span>
+  <button class="navbtn" id="prev" type="button" aria-label="前のスライド">←</button>
+  <button class="navbtn" id="next" type="button" aria-label="次のスライド">→</button>
+</div>
+<div class="progress" aria-hidden="true"><span id="bar"></span></div>
+</main>
+</div>
+<p class="hint">← → / クリックで移動 · F で全画面</p>
+
+<script>
+/* 結果データ：results/e0_gauss/0e3e6a0177/summary.csv と results/e0_poiss/eefdf7a422/summary.csv から転記 */
+const RESULTS = [
+  {grp:"ガウスノイズ"},
+  {ds:"Kodak24",    lv:"σ = 10", mine:33.39, paper:33.69, diff:-0.30, ssim:0.9097, tol:0.5},
+  {ds:"Kodak24",    lv:"σ = 25", mine:28.79, paper:29.07, diff:-0.28, ssim:0.7877, tol:0.3},
+  {ds:"Kodak24",    lv:"σ = 50", mine:24.69, paper:24.81, diff:-0.12, ssim:0.6172, tol:0.5},
+  {ds:"McMaster18", lv:"σ = 10", mine:34.02, paper:34.21, diff:-0.19, ssim:0.9040, tol:0.5},
+  {ds:"McMaster18", lv:"σ = 25", mine:28.62, paper:28.80, diff:-0.18, ssim:0.7687, tol:0.5},
+  {ds:"McMaster18", lv:"σ = 50", mine:23.84, paper:24.02, diff:-0.18, ssim:0.5968, tol:0.5},
+  {grp:"ポアソンノイズ"},
+  {ds:"Kodak24",    lv:"λ = 50", mine:29.38, paper:29.45, diff:-0.07, ssim:0.8085, tol:0.5},
+  {ds:"Kodak24",    lv:"λ = 25", mine:27.49, paper:27.52, diff:-0.03, ssim:0.7365, tol:0.5},
+  {ds:"Kodak24",    lv:"λ = 10", mine:24.88, paper:24.92, diff:-0.04, ssim:0.6097, tol:0.5},
+  {ds:"McMaster18", lv:"λ = 50", mine:30.44, paper:30.36, diff: 0.08, ssim:0.8519, tol:0.5},
+  {ds:"McMaster18", lv:"λ = 25", mine:28.48, paper:28.41, diff: 0.07, ssim:0.7959, tol:0.5},
+  {ds:"McMaster18", lv:"λ = 10", mine:25.84, paper:25.75, diff: 0.09, ssim:0.6944, tol:0.5},
+];
+
+/* 掲載サンプルの PSNR（ノイズ画像 → 除去結果）。rows.csv の保存値と一致を確認済み */
+const SAMPLES = {
+  kodim08: {gauss10:[28.25,32.80], gauss25:[20.48,27.77], gauss50:[14.96,23.17],
+            poiss50:[20.30,28.24], poiss25:[17.30,26.00], poiss10:[13.31,23.17]},
+  "12":    {gauss10:[28.26,34.12], gauss25:[20.45,29.68], gauss50:[14.79,25.10],
+            poiss50:[21.10,30.94], poiss25:[18.09,29.08], poiss10:[14.12,26.37]},
+};
+const COND_LABEL = {gauss10:"σ = 10", gauss25:"σ = 25", gauss50:"σ = 50", poiss50:"λ = 50", poiss25:"λ = 25", poiss10:"λ = 10"};
+const ASSET = "e0-visual-assets/";
+const fmt = v => (v > 0 ? "+" : v < 0 ? "−" : "±") + Math.abs(v).toFixed(2);
+
+/** 結果表を作る。差の列は ±0.6 dB の範囲で、0 を中心にした横棒で描く */
+function buildResultTable() {
+  const tb = document.getElementById("rt-body");
+  const R = 0.6; // 横棒の片側の幅に相当する dB
+  const pct = v => 50 + (v / R) * 50;
+  tb.innerHTML = RESULTS.map(r => {
+    if (r.grp) return `<tr class="grp"><td colspan="7">${r.grp}</td></tr>`;
+    const left = Math.min(pct(0), pct(r.diff)), w = Math.abs(pct(r.diff) - pct(0));
+    // 数値ラベルは棒の外側に置く（マイナスなら棒の左、プラスなら右）
+    const lab = r.diff < 0 ? `right:${100 - left + 2}%` : `left:${left + w + 2}%`;
+    return `<tr><td class="ds">${r.ds}</td><td>${r.lv}</td><td class="mine">${r.mine.toFixed(2)}</td><td class="paper">${r.paper.toFixed(2)}</td>
+      <td class="bar"><div class="dbar"><span class="tol" style="left:${pct(-r.tol)}%;width:${pct(r.tol) - pct(-r.tol)}%"></span>
+      <span class="zero"></span><span class="v ${r.diff < 0 ? "neg" : "pos"}" style="left:${left}%;width:${Math.max(w, .6)}%"></span>
+      <span class="lab num ${r.diff < 0 ? "c-adj" : "c-core"}" style="${lab}">${fmt(r.diff)}</span></div></td>
+      <td>${r.ssim.toFixed(4)}</td><td class="ok">合格</td></tr>`;
+  }).join("");
+}
+
+/** 除去前後スライドの右側（条件の切り替えボタンと PSNR）を作り、画像を差し替えられるようにする */
+function buildBeforeAfter(slide) {
+  const img = slide.dataset.img;
+  const side = slide.querySelector(".ba-side");
+  const ds = img === "kodim08" ? "Kodak24" : "McMaster18";
+  side.innerHTML = `
+    <div class="card">
+      <h3>ノイズ条件</h3>
+      <div class="conds" role="group" aria-label="ノイズ条件">
+        <span class="gl">ガウス</span>
+        ${["gauss10","gauss25","gauss50"].map(c => `<button type="button" class="cond" data-c="${c}">${COND_LABEL[c]}</button>`).join("")}
+        <span class="gl">ポアソン</span>
+        ${["poiss50","poiss25","poiss10"].map(c => `<button type="button" class="cond" data-c="${c}">${COND_LABEL[c]}</button>`).join("")}
+      </div>
+    </div>
+    <div class="card">
+      <h3>この画像の PSNR</h3>
+      <div class="psnr-jump"><span class="from" data-v="in"></span><span class="arrow">→</span><span class="to" data-v="out"></span><span class="u">dB</span></div>
+      <p class="gain">改善 <b data-v="gain"></b> dB</p>
+      <p class="gain">${ds} 全${ds === "Kodak24" ? 24 : 18}枚の平均（同条件）<b data-v="avg"></b> dB</p>
+      <p class="src">除去画像は再生成したもの（PSNR は記録と一致）。</p>
+    </div>`;
+  const set = cond => {
+    slide.querySelectorAll("img[data-k]").forEach(el => {
+      const k = el.dataset.k;
+      el.src = ASSET + (k.startsWith("clean") ? `${img}-${k}.png` : `${img}-${cond}-${k}.png`);
+    });
+    const [a, b] = SAMPLES[img][cond];
+    const avg = RESULTS.find(r => r.ds === ds && r.lv === COND_LABEL[cond]).mine;
+    slide.querySelectorAll('[data-v="in"]').forEach(e => e.textContent = a.toFixed(2) + (e.closest("figcaption") ? " dB" : ""));
+    slide.querySelectorAll('[data-v="out"]').forEach(e => e.textContent = b.toFixed(2) + (e.closest("figcaption") ? " dB" : ""));
+    slide.querySelector('[data-v="gain"]').textContent = "+" + (b - a).toFixed(2);
+    slide.querySelector('[data-v="avg"]').textContent = avg.toFixed(2);
+    slide.querySelectorAll(".cond").forEach(bt => bt.setAttribute("aria-pressed", String(bt.dataset.c === cond)));
+  };
+  side.querySelectorAll(".cond").forEach(bt => bt.addEventListener("click", () => set(bt.dataset.c)));
+  set("gauss25");
+}
+
+/** ノイズ差分のパネルを並べる */
+function buildDiffs() {
+  document.querySelectorAll("[data-diff]").forEach(row => {
+    const conds = row.dataset.kind === "gauss" ? ["gauss10","gauss25","gauss50"] : ["poiss50","poiss25","poiss10"];
+    row.innerHTML = conds.map(c => `<figure><img src="${ASSET}${row.dataset.diff}-${c}-diff.png" alt="ノイズ差分 ${COND_LABEL[c]}" width="256" height="256"><figcaption>${COND_LABEL[c]}</figcaption></figure>`).join("");
+  });
+}
+
+/* ---- スライド送り ---- */
+const stage = document.getElementById("stage");
+const slides = Array.from(document.querySelectorAll(".slide"));
+const countEl = document.getElementById("count"), bar = document.getElementById("bar");
+const prevBtn = document.getElementById("prev"), nextBtn = document.getElementById("next");
+let idx = 0;
+
+/** 指定したスライドを表示し、番号・進捗・URL のハッシュを更新する */
+function show(i) {
+  idx = Math.max(0, Math.min(slides.length - 1, i));
+  slides.forEach((s, j) => s.hidden = j !== idx);
+  countEl.textContent = `${idx + 1} / ${slides.length}`;
+  bar.style.width = `${((idx + 1) / slides.length) * 100}%`;
+  prevBtn.disabled = idx === 0;
+  nextBtn.disabled = idx === slides.length - 1;
+  history.replaceState(null, "", "#" + slides[idx].id);
+}
+
+/** 1280×720 のステージを、余白を残して画面に収まる倍率で拡大縮小する */
+function fit() {
+  const s = Math.min(window.innerWidth / 1280, window.innerHeight / 720) * 0.96;
+  stage.style.transform = `scale(${s})`;
+}
+
+document.addEventListener("keydown", e => {
+  if (e.altKey || e.ctrlKey || e.metaKey) return;
+  const fwd = ["ArrowRight", "PageDown", " ", "Enter"], back = ["ArrowLeft", "PageUp"];
+  if (fwd.includes(e.key) && !(e.key === "Enter" && e.target.closest("button"))) { e.preventDefault(); show(idx + (e.shiftKey && e.key === " " ? -1 : 1)); }
+  else if (back.includes(e.key)) { e.preventDefault(); show(idx - 1); }
+  else if (e.key === "Home") { e.preventDefault(); show(0); }
+  else if (e.key === "End") { e.preventDefault(); show(slides.length - 1); }
+  else if (e.key === "f" || e.key === "F") {
+    if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.();
+  }
+});
+
+// クリックで送る：画面の左 3 割なら戻る、それ以外は進む。ボタン・リンク上のクリックは送らない
+document.addEventListener("click", e => {
+  if (e.target.closest("button, a, input, select, summary")) return;
+  if (window.getSelection && String(window.getSelection())) return; // 文字を選択したときは送らない
+  show(e.clientX < window.innerWidth * 0.3 ? idx - 1 : idx + 1);
+});
+prevBtn.addEventListener("click", () => show(idx - 1));
+nextBtn.addEventListener("click", () => show(idx + 1));
+window.addEventListener("resize", fit);
+window.addEventListener("hashchange", () => {
+  const j = slides.findIndex(s => "#" + s.id === location.hash);
+  if (j >= 0 && j !== idx) show(j);
+});
+
+buildResultTable();
+document.querySelectorAll(".s-ba").forEach(buildBeforeAfter);
+buildDiffs();
+fit();
+show(Math.max(0, slides.findIndex(s => "#" + s.id === location.hash)));
+</script>
+</body>
+</html>

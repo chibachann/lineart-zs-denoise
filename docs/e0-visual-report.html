@@ -1,0 +1,1186 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>論文再現（ZS-N2N再現実験） | ビジュアルレポート</title>
+  <style>
+:root {
+  color-scheme: light;
+  --ink: #222720;
+  --muted: #545e52;
+  --paper: #f8f7f1;
+  --card: #fffef9;
+  --line: #d9ddd2;
+  --accent: #9c3b21;
+  --accent-light: #f4e3d8;
+  --green: #e4ebe0;
+  --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-padding-top: 1.5rem; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif;
+  margin: 0;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+h1, h2, h3, h4, p, figure, ol { margin: 0; }
+img { display: block; max-width: 100%; height: auto; }
+a { color: var(--accent); text-underline-offset: .2em; }
+a:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+}
+code { font-family: var(--mono); font-size: .9em; }
+.wrap { width: min(1120px, calc(100% - 56px)); margin-inline: auto; }
+.micro {
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: .8rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+.site-header { border-bottom: 1px solid var(--line); }
+.site-header .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: .6rem 1.5rem;
+  padding-block: 1.15rem;
+}
+.site-header nav { display: flex; flex-wrap: wrap; gap: .45rem 1.4rem; }
+.site-header nav a { color: var(--ink); font-size: .87rem; text-decoration: none; }
+.site-header nav a:hover { text-decoration: underline; }
+.hero { background: #eceee5; padding-block: clamp(2.5rem, 6vw, 5.2rem); }
+.hero .wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+  gap: clamp(1.5rem, 5vw, 4.5rem);
+  align-items: center;
+}
+.hero .wrap > div { container-type: inline-size; }
+h1 { font-size: clamp(1.85rem, 10.55cqi, 3.35rem); line-height: 1.2; letter-spacing: -.04em; margin-top: .6rem; }
+h1 span { font-size: .78em; white-space: nowrap; }
+.hero p { margin-top: 1.15rem; max-width: 35em; color: var(--muted); }
+.hero-images { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem; }
+.hero-images img { width: 100%; image-rendering: pixelated; }
+.hero-labels {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .35rem;
+  font-size: .83rem;
+  font-weight: 700;
+  margin-top: .35rem;
+}
+.hero figcaption { margin-top: .55rem; font-size: .8rem; color: var(--muted); }
+.fact { display: flex; flex-wrap: wrap; gap: .25rem .7rem; margin-top: 1.35rem; align-items: baseline; }
+.fact strong { font-size: 1.25rem; color: var(--accent); }
+.fact span { font-size: .88rem; color: var(--muted); }
+
+main > section { padding-block: clamp(2.3rem, 5vw, 4.25rem); border-bottom: 1px solid var(--line); }
+.section-head { margin-bottom: 1.65rem; }
+h2 { font-size: clamp(1.55rem, 3vw, 2.35rem); line-height: 1.25; letter-spacing: -.025em; }
+.section-head p { color: var(--muted); margin-top: .6rem; max-width: 70ch; }
+h3 { font-size: 1.2rem; line-height: 1.35; }
+
+.pipeline { display: grid; grid-template-columns: 1fr 3.1fr 1fr; gap: 1.4rem; align-items: stretch; }
+.flow-card, .flow-process, .gallery-card, .noise-block {
+  border: 1px solid var(--line);
+  border-radius: .65rem;
+  background: var(--card);
+}
+.flow-card, .flow-process { position: relative; padding: 1rem; }
+.flow-card:not(:last-child)::after, .flow-process::after {
+  content: "→";
+  position: absolute;
+  top: 50%;
+  left: calc(100% + .13rem);
+  color: var(--accent);
+  transform: translateY(-50%);
+  font-weight: 700;
+}
+.flow-process { background: var(--green); }
+.flow-card h3, .flow-process h3 { margin-bottom: .45rem; font-size: 1.05rem; }
+.flow-card p, .flow-process p { font-size: .87rem; }
+.flow-card p + p { margin-top: .55rem; }
+.flow-process ol {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .75rem;
+  list-style: none;
+  padding: 0;
+}
+.flow-process li { border-top: 1px solid #bac5b6; padding-top: .6rem; }
+.flow-process li + li { position: relative; padding-left: .45rem; }
+.flow-process li + li::before { content: "→"; color: var(--accent); position: absolute; top: .52rem; right: calc(100% - .2rem); }
+.flow-process li strong { display: block; font-size: .87rem; margin-bottom: .3rem; }
+.flow-process li p { color: var(--muted); font-size: .82rem; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: .3rem; margin-top: .6rem; }
+.pair figure img { width: 100%; }
+.pair figcaption { font: .75rem var(--mono); margin-top: .2rem; }
+.flow-note { margin-top: 1rem; color: var(--muted); font-size: .84rem; }
+
+.sample + .sample { margin-top: 2.5rem; }
+.sample-heading { display: flex; flex-wrap: wrap; gap: .35rem .8rem; align-items: baseline; margin-bottom: .8rem; }
+.sample-heading p { font-size: .85rem; color: var(--muted); }
+.case-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .9rem; }
+.gallery-card { padding: .85rem; }
+.gallery-card:target { outline: 2px solid var(--accent); outline-offset: 3px; }
+.case-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: .2rem .6rem;
+  align-items: baseline;
+  margin-bottom: .8rem;
+}
+.case-head h4 { font-size: 1rem; }
+.case-head p { color: var(--muted); font-size: .78rem; }
+.case-head strong { color: var(--accent); font-variant-numeric: tabular-nums; }
+.triptych { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .36rem; }
+.triptych figcaption { font-size: .77rem; margin-top: .28rem; font-weight: 650; }
+.frame { position: relative; }
+.frame img, .zoom img { width: 100%; }
+.region {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: 31.25%;
+  height: 31.25%;
+  border: 1px solid #fff;
+  outline: 1px solid #27251e;
+  box-shadow: 0 0 0 2px #f5bc64;
+}
+.zoom { margin-top: .72rem; padding-top: .62rem; border-top: 1px solid var(--line); }
+.zoom img { image-rendering: pixelated; }
+.zoom p, .archive { color: var(--muted); font-size: .76rem; }
+.zoom p { margin-bottom: .35rem; }
+.archive { margin-top: .65rem; }
+details { margin-top: .75rem; }
+summary {
+  padding: .55rem .05rem;
+  cursor: pointer;
+  color: var(--accent);
+  font-size: .87rem;
+  font-weight: 700;
+  width: fit-content;
+}
+details > .case-grid { margin-top: .5rem; }
+
+.noise-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .95rem; }
+.noise-block { padding: .85rem; }
+.noise-block h3 { font-size: 1rem; margin-bottom: .7rem; }
+.noise-block img { width: 100%; }
+.noise-scale {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .45rem .8rem;
+  margin-top: 1rem;
+  font-size: .83rem;
+  color: var(--muted);
+}
+.ramp { flex: 0 1 160px; min-width: 80px; height: .65rem; background: linear-gradient(90deg, #000, #fff); border: 1px solid #737a70; }
+.noise-observation { font-size: .9rem; color: var(--muted); margin-top: .85rem; }
+
+.table-block + .table-block { margin-top: 1.55rem; }
+.table-block h3 { margin-bottom: .6rem; }
+.table-scroll { overflow-x: auto; background: var(--card); border: 1px solid var(--line); border-radius: .65rem; }
+table { width: 100%; border-collapse: collapse; font-size: .85rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+th, td { text-align: right; padding: .55rem .7rem; border-bottom: 1px solid var(--line); }
+thead th { background: var(--green); font-size: .77rem; }
+th:first-child, td:last-child, th:last-child { text-align: left; }
+tbody tr:last-child > * { border-bottom: 0; }
+tbody tr:nth-child(3) > * { border-bottom-width: 2px; }
+.actual { color: var(--accent); font-weight: 700; }
+.ok { font-size: .77rem; color: #315338; font-weight: 700; }
+.preview { display: inline-flex; align-items: center; gap: .25rem; }
+.preview img { width: 32px; height: 32px; }
+.preview span { padding-left: .2rem; }
+.notes { margin-top: 1.15rem; color: var(--muted); font-size: .84rem; }
+.notes p + p { margin-top: .45rem; }
+
+footer { padding-block: 2.2rem 3.2rem; }
+footer h2 { font-size: 1.2rem; letter-spacing: normal; }
+footer ul { padding-left: 1.2rem; margin-block: .7rem 0; color: var(--muted); font-size: .85rem; }
+footer li + li { margin-top: .35rem; }
+@media (max-width: 900px) {
+  .pipeline { grid-template-columns: minmax(0, 1fr); gap: 1.28rem; }
+  .flow-card:not(:last-child)::after, .flow-process::after {
+    content: "↓";
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    line-height: 1.3;
+  }
+  .pair { max-width: 150px; }
+}
+@media (max-width: 690px) {
+  .wrap { width: calc(100% - 32px); }
+  .hero .wrap, .case-grid, .noise-grid { grid-template-columns: minmax(0, 1fr); }
+  .hero figure { max-width: 480px; }
+  .site-header nav { gap: .35rem .95rem; }
+}
+@media (max-width: 430px) {
+  .flow-process ol { grid-template-columns: 1fr; gap: .6rem; }
+  .flow-process li + li { padding-left: 0; }
+  .flow-process li + li::before { content: none; }
+}
+  </style>
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap">
+    <span class="micro">ZERO-SHOT NOISE2NOISE / 実験レポート</span>
+    <nav aria-label="目次">
+      <a href="#method">実験の流れ</a>
+      <a href="#comparison">除去前後</a>
+      <a href="#noise">ノイズ差分</a>
+      <a href="#results">PSNR 結果</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero" aria-labelledby="title">
+    <div class="wrap">
+      <div>
+        <h1 id="title">論文再現<br><span>（ZS-N2N再現実験）</span></h1>
+        <p>論文再現（ZS-N2N再現実験）では、Kodak24とMcMaster18でガウス・ポアソンノイズの除去を評価した。実際の評価画像で除去前後を見比べ、データセット全体のPSNRを論文値と照合する。</p>
+        <div class="fact"><strong>12 / 12 条件で合格</strong><span>論文値との差は最大0.30 dB</span></div>
+      </div>
+      <figure>
+        <div class="hero-images">
+          <img src="e0-visual-assets/kodim08-gauss25-noisy-crop.png" alt="ノイズを加えた建物の窓枠と外壁" width="80" height="80">
+          <img src="e0-visual-assets/kodim08-gauss25-denoised-crop.png" alt="ZS-N2Nでノイズを除去した同じ窓枠と外壁" width="80" height="80">
+        </div>
+        <div class="hero-labels">
+          <span>ノイズ画像 · 20.48 dB</span>
+          <span>除去結果 · 27.77 dB</span>
+        </div>
+        <figcaption>Kodak24 <code>kodim08</code> · ガウス σ = 25 · 80 × 80 px の拡大</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section id="method" aria-labelledby="method-title">
+    <div class="wrap">
+      <header class="section-head">
+        <h2 id="method-title">実験の流れ</h2>
+        <p>各評価画像の中央256 × 256 pxを使い、ノイズ画像1枚ごとにネットワークを学習する。</p>
+      </header>
+      <div class="pipeline" role="group" aria-label="ノイズ付与からZS-N2Nを経て評価へ">
+        <article class="flow-card">
+          <h3>ノイズ付与</h3>
+          <p>ガウス <strong>σ = 10 / 25 / 50</strong><br>0–255スケールの標準偏差。加算後に画素値をクリップ。</p>
+          <p>ポアソン <strong>λ = 50 / 25 / 10</strong><br>画素値 <var>x</var> ∈ [0, 1] に対し <code>Poisson(λx) / λ</code> を使用。</p>
+        </article>
+        <article class="flow-process">
+          <h3>ZS-N2N</h3>
+          <ol>
+            <li>
+              <strong>2×2でD1/D2を生成</strong>
+              <p>ブロック内の右上・左下の平均がD1、左上・右下の平均がD2。各128 × 128 px。</p>
+              <div class="pair">
+                <figure><img src="e0-visual-assets/kodim08-gauss25-d1.png" alt="右上と左下の画素を平均した実画像D1" width="128" height="128" loading="lazy"><figcaption>D1</figcaption></figure>
+                <figure><img src="e0-visual-assets/kodim08-gauss25-d2.png" alt="左上と右下の画素を平均した実画像D2" width="128" height="128" loading="lazy"><figcaption>D2</figcaption></figure>
+              </div>
+            </li>
+            <li>
+              <strong>小型CNNを学習</strong>
+              <p>対になる画像を互いの教師にして、残差損失と一貫性損失を最小化。3層の畳み込み（中間48チャネル）をAdamで2,000反復学習。</p>
+            </li>
+            <li>
+              <strong>元の解像度で推論</strong>
+              <p>256 × 256 pxのノイズ画像から、CNNが推定したノイズを引く。出力は [0, 1] に収める。</p>
+            </li>
+          </ol>
+        </article>
+        <article class="flow-card">
+          <h3>評価</h3>
+          <p>原画像と比較してPSNR・SSIMを算出。Kodak24は24枚、McMaster18は18枚を強さごとに集計し、論文のPSNRと比較。</p>
+        </article>
+      </div>
+      <p class="flow-note">D1/D2の表示例は上部と同じ <code>kodim08</code>（σ = 25）の保存済み入力から作成。初期学習率0.001を1,500反復で半減。ノイズと初期化のシードはいずれも0。</p>
+    </div>
+  </section>
+
+  <section id="comparison" aria-labelledby="comparison-title">
+    <div class="wrap">
+      <header class="section-head">
+        <h2 id="comparison-title">実画像で見る除去前後</h2>
+        <p>上段は評価に使った中央256 × 256 px。下段は同じ位置を最近傍で拡大した。各カードのPSNRは表示用PNGに変換する前のテンソルで計算した。</p>
+      </header>
+    <section class="sample" aria-labelledby="kodak24">
+      <header class="sample-heading">
+        <h3 id="kodak24">Kodak24 <code>kodim08.png</code></h3>
+        <p>窓枠と外壁を比較</p>
+      </header>
+      <div class="case-grid">
+      <article class="gallery-card" id="sample-kodim08-gauss25" style="--x:53.515625%; --y:28.125000%">
+        <header class="case-head">
+          <h4>ガウス σ = 25</h4>
+          <p>PSNR <strong>20.48 → 27.77 dB</strong></p>
+        </header>
+        <div class="triptych">
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/kodim08-clean.png" alt="Kodak24 kodim08の原画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>原画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/kodim08-gauss25-noisy.png" alt="Kodak24 kodim08のノイズ画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>ノイズ画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/kodim08-gauss25-denoised.png" alt="Kodak24 kodim08の除去結果" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>除去結果</figcaption>
+          </figure>
+        </div>
+        <div class="zoom">
+          <p>枠内の拡大 · 80 × 80 px</p>
+          <div class="triptych">
+          <img src="e0-visual-assets/kodim08-clean-crop.png" alt="原画像の拡大、窓枠と外壁" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/kodim08-gauss25-noisy-crop.png" alt="ノイズ画像の拡大、窓枠と外壁" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/kodim08-gauss25-denoised-crop.png" alt="除去結果の拡大、窓枠と外壁" width="80" height="80" loading="lazy">
+          </div>
+        </div>
+        <p class="archive">保存値（除去後） 27.7727 dB · 画像再生成 27.7727 dB</p>
+      </article>
+      <article class="gallery-card" id="sample-kodim08-poiss25" style="--x:53.515625%; --y:28.125000%">
+        <header class="case-head">
+          <h4>ポアソン λ = 25</h4>
+          <p>PSNR <strong>17.30 → 26.00 dB</strong></p>
+        </header>
+        <div class="triptych">
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/kodim08-clean.png" alt="Kodak24 kodim08の原画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>原画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/kodim08-poiss25-noisy.png" alt="Kodak24 kodim08のノイズ画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>ノイズ画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/kodim08-poiss25-denoised.png" alt="Kodak24 kodim08の除去結果" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>除去結果</figcaption>
+          </figure>
+        </div>
+        <div class="zoom">
+          <p>枠内の拡大 · 80 × 80 px</p>
+          <div class="triptych">
+          <img src="e0-visual-assets/kodim08-clean-crop.png" alt="原画像の拡大、窓枠と外壁" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/kodim08-poiss25-noisy-crop.png" alt="ノイズ画像の拡大、窓枠と外壁" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/kodim08-poiss25-denoised-crop.png" alt="除去結果の拡大、窓枠と外壁" width="80" height="80" loading="lazy">
+          </div>
+        </div>
+        <p class="archive">保存値（除去後） 25.9966 dB · 画像再生成 25.9966 dB</p>
+      </article>
+      </div>
+      <details>
+        <summary>Kodak24の他の4条件を見る（σ = 10 / 50、λ = 50 / 10）</summary>
+        <div class="case-grid">
+      <article class="gallery-card" id="sample-kodim08-gauss10" style="--x:53.515625%; --y:28.125000%">
+        <header class="case-head">
+          <h4>ガウス σ = 10</h4>
+          <p>PSNR <strong>28.25 → 32.80 dB</strong></p>
+        </header>
+        <div class="triptych">
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/kodim08-clean.png" alt="Kodak24 kodim08の原画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>原画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/kodim08-gauss10-noisy.png" alt="Kodak24 kodim08のノイズ画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>ノイズ画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/kodim08-gauss10-denoised.png" alt="Kodak24 kodim08の除去結果" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>除去結果</figcaption>
+          </figure>
+        </div>
+        <div class="zoom">
+          <p>枠内の拡大 · 80 × 80 px</p>
+          <div class="triptych">
+          <img src="e0-visual-assets/kodim08-clean-crop.png" alt="原画像の拡大、窓枠と外壁" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/kodim08-gauss10-noisy-crop.png" alt="ノイズ画像の拡大、窓枠と外壁" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/kodim08-gauss10-denoised-crop.png" alt="除去結果の拡大、窓枠と外壁" width="80" height="80" loading="lazy">
+          </div>
+        </div>
+        <p class="archive">保存値（除去後） 32.8047 dB · 画像再生成 32.8047 dB</p>
+      </article>
+      <article class="gallery-card" id="sample-kodim08-gauss50" style="--x:53.515625%; --y:28.125000%">
+        <header class="case-head">
+          <h4>ガウス σ = 50</h4>
+          <p>PSNR <strong>14.96 → 23.17 dB</strong></p>
+        </header>
+        <div class="triptych">
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/kodim08-clean.png" alt="Kodak24 kodim08の原画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>原画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/kodim08-gauss50-noisy.png" alt="Kodak24 kodim08のノイズ画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>ノイズ画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/kodim08-gauss50-denoised.png" alt="Kodak24 kodim08の除去結果" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>除去結果</figcaption>
+          </figure>
+        </div>
+        <div class="zoom">
+          <p>枠内の拡大 · 80 × 80 px</p>
+          <div class="triptych">
+          <img src="e0-visual-assets/kodim08-clean-crop.png" alt="原画像の拡大、窓枠と外壁" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/kodim08-gauss50-noisy-crop.png" alt="ノイズ画像の拡大、窓枠と外壁" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/kodim08-gauss50-denoised-crop.png" alt="除去結果の拡大、窓枠と外壁" width="80" height="80" loading="lazy">
+          </div>
+        </div>
+        <p class="archive">保存値（除去後） 23.1657 dB · 画像再生成 23.1657 dB</p>
+      </article>
+      <article class="gallery-card" id="sample-kodim08-poiss50" style="--x:53.515625%; --y:28.125000%">
+        <header class="case-head">
+          <h4>ポアソン λ = 50</h4>
+          <p>PSNR <strong>20.30 → 28.24 dB</strong></p>
+        </header>
+        <div class="triptych">
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/kodim08-clean.png" alt="Kodak24 kodim08の原画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>原画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/kodim08-poiss50-noisy.png" alt="Kodak24 kodim08のノイズ画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>ノイズ画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/kodim08-poiss50-denoised.png" alt="Kodak24 kodim08の除去結果" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>除去結果</figcaption>
+          </figure>
+        </div>
+        <div class="zoom">
+          <p>枠内の拡大 · 80 × 80 px</p>
+          <div class="triptych">
+          <img src="e0-visual-assets/kodim08-clean-crop.png" alt="原画像の拡大、窓枠と外壁" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/kodim08-poiss50-noisy-crop.png" alt="ノイズ画像の拡大、窓枠と外壁" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/kodim08-poiss50-denoised-crop.png" alt="除去結果の拡大、窓枠と外壁" width="80" height="80" loading="lazy">
+          </div>
+        </div>
+        <p class="archive">保存値（除去後） 28.2448 dB · 画像再生成 28.2448 dB</p>
+      </article>
+      <article class="gallery-card" id="sample-kodim08-poiss10" style="--x:53.515625%; --y:28.125000%">
+        <header class="case-head">
+          <h4>ポアソン λ = 10</h4>
+          <p>PSNR <strong>13.31 → 23.17 dB</strong></p>
+        </header>
+        <div class="triptych">
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/kodim08-clean.png" alt="Kodak24 kodim08の原画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>原画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/kodim08-poiss10-noisy.png" alt="Kodak24 kodim08のノイズ画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>ノイズ画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/kodim08-poiss10-denoised.png" alt="Kodak24 kodim08の除去結果" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>除去結果</figcaption>
+          </figure>
+        </div>
+        <div class="zoom">
+          <p>枠内の拡大 · 80 × 80 px</p>
+          <div class="triptych">
+          <img src="e0-visual-assets/kodim08-clean-crop.png" alt="原画像の拡大、窓枠と外壁" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/kodim08-poiss10-noisy-crop.png" alt="ノイズ画像の拡大、窓枠と外壁" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/kodim08-poiss10-denoised-crop.png" alt="除去結果の拡大、窓枠と外壁" width="80" height="80" loading="lazy">
+          </div>
+        </div>
+        <p class="archive">保存値（除去後） 23.1655 dB · 画像再生成 23.1655 dB</p>
+      </article>
+        </div>
+      </details>
+    </section>
+    <section class="sample" aria-labelledby="mcmaster18">
+      <header class="sample-heading">
+        <h3 id="mcmaster18">McMaster18 <code>12.tif</code></h3>
+        <p>細い網目と明るさの異なる面を比較</p>
+      </header>
+      <div class="case-grid">
+      <article class="gallery-card" id="sample-12-gauss25" style="--x:35.546875%; --y:15.234375%">
+        <header class="case-head">
+          <h4>ガウス σ = 25</h4>
+          <p>PSNR <strong>20.45 → 29.68 dB</strong></p>
+        </header>
+        <div class="triptych">
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/12-clean.png" alt="McMaster18 12の原画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>原画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/12-gauss25-noisy.png" alt="McMaster18 12のノイズ画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>ノイズ画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/12-gauss25-denoised.png" alt="McMaster18 12の除去結果" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>除去結果</figcaption>
+          </figure>
+        </div>
+        <div class="zoom">
+          <p>枠内の拡大 · 80 × 80 px</p>
+          <div class="triptych">
+          <img src="e0-visual-assets/12-clean-crop.png" alt="原画像の拡大、細い網目と明るさの異なる面" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/12-gauss25-noisy-crop.png" alt="ノイズ画像の拡大、細い網目と明るさの異なる面" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/12-gauss25-denoised-crop.png" alt="除去結果の拡大、細い網目と明るさの異なる面" width="80" height="80" loading="lazy">
+          </div>
+        </div>
+        <p class="archive">保存値（除去後） 29.6826 dB · 画像再生成 29.6826 dB</p>
+      </article>
+      <article class="gallery-card" id="sample-12-poiss25" style="--x:35.546875%; --y:15.234375%">
+        <header class="case-head">
+          <h4>ポアソン λ = 25</h4>
+          <p>PSNR <strong>18.09 → 29.08 dB</strong></p>
+        </header>
+        <div class="triptych">
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/12-clean.png" alt="McMaster18 12の原画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>原画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/12-poiss25-noisy.png" alt="McMaster18 12のノイズ画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>ノイズ画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/12-poiss25-denoised.png" alt="McMaster18 12の除去結果" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>除去結果</figcaption>
+          </figure>
+        </div>
+        <div class="zoom">
+          <p>枠内の拡大 · 80 × 80 px</p>
+          <div class="triptych">
+          <img src="e0-visual-assets/12-clean-crop.png" alt="原画像の拡大、細い網目と明るさの異なる面" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/12-poiss25-noisy-crop.png" alt="ノイズ画像の拡大、細い網目と明るさの異なる面" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/12-poiss25-denoised-crop.png" alt="除去結果の拡大、細い網目と明るさの異なる面" width="80" height="80" loading="lazy">
+          </div>
+        </div>
+        <p class="archive">保存値（除去後） 29.0791 dB · 画像再生成 29.0791 dB</p>
+      </article>
+      </div>
+      <details>
+        <summary>McMaster18の他の4条件を見る（σ = 10 / 50、λ = 50 / 10）</summary>
+        <div class="case-grid">
+      <article class="gallery-card" id="sample-12-gauss10" style="--x:35.546875%; --y:15.234375%">
+        <header class="case-head">
+          <h4>ガウス σ = 10</h4>
+          <p>PSNR <strong>28.26 → 34.12 dB</strong></p>
+        </header>
+        <div class="triptych">
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/12-clean.png" alt="McMaster18 12の原画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>原画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/12-gauss10-noisy.png" alt="McMaster18 12のノイズ画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>ノイズ画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/12-gauss10-denoised.png" alt="McMaster18 12の除去結果" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>除去結果</figcaption>
+          </figure>
+        </div>
+        <div class="zoom">
+          <p>枠内の拡大 · 80 × 80 px</p>
+          <div class="triptych">
+          <img src="e0-visual-assets/12-clean-crop.png" alt="原画像の拡大、細い網目と明るさの異なる面" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/12-gauss10-noisy-crop.png" alt="ノイズ画像の拡大、細い網目と明るさの異なる面" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/12-gauss10-denoised-crop.png" alt="除去結果の拡大、細い網目と明るさの異なる面" width="80" height="80" loading="lazy">
+          </div>
+        </div>
+        <p class="archive">保存値（除去後） 34.1212 dB · 画像再生成 34.1212 dB</p>
+      </article>
+      <article class="gallery-card" id="sample-12-gauss50" style="--x:35.546875%; --y:15.234375%">
+        <header class="case-head">
+          <h4>ガウス σ = 50</h4>
+          <p>PSNR <strong>14.79 → 25.10 dB</strong></p>
+        </header>
+        <div class="triptych">
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/12-clean.png" alt="McMaster18 12の原画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>原画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/12-gauss50-noisy.png" alt="McMaster18 12のノイズ画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>ノイズ画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/12-gauss50-denoised.png" alt="McMaster18 12の除去結果" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>除去結果</figcaption>
+          </figure>
+        </div>
+        <div class="zoom">
+          <p>枠内の拡大 · 80 × 80 px</p>
+          <div class="triptych">
+          <img src="e0-visual-assets/12-clean-crop.png" alt="原画像の拡大、細い網目と明るさの異なる面" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/12-gauss50-noisy-crop.png" alt="ノイズ画像の拡大、細い網目と明るさの異なる面" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/12-gauss50-denoised-crop.png" alt="除去結果の拡大、細い網目と明るさの異なる面" width="80" height="80" loading="lazy">
+          </div>
+        </div>
+        <p class="archive">保存値（除去後） 25.0970 dB · 画像再生成 25.0970 dB</p>
+      </article>
+      <article class="gallery-card" id="sample-12-poiss50" style="--x:35.546875%; --y:15.234375%">
+        <header class="case-head">
+          <h4>ポアソン λ = 50</h4>
+          <p>PSNR <strong>21.10 → 30.94 dB</strong></p>
+        </header>
+        <div class="triptych">
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/12-clean.png" alt="McMaster18 12の原画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>原画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/12-poiss50-noisy.png" alt="McMaster18 12のノイズ画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>ノイズ画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/12-poiss50-denoised.png" alt="McMaster18 12の除去結果" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>除去結果</figcaption>
+          </figure>
+        </div>
+        <div class="zoom">
+          <p>枠内の拡大 · 80 × 80 px</p>
+          <div class="triptych">
+          <img src="e0-visual-assets/12-clean-crop.png" alt="原画像の拡大、細い網目と明るさの異なる面" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/12-poiss50-noisy-crop.png" alt="ノイズ画像の拡大、細い網目と明るさの異なる面" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/12-poiss50-denoised-crop.png" alt="除去結果の拡大、細い網目と明るさの異なる面" width="80" height="80" loading="lazy">
+          </div>
+        </div>
+        <p class="archive">保存値（除去後） 30.9410 dB · 画像再生成 30.9410 dB</p>
+      </article>
+      <article class="gallery-card" id="sample-12-poiss10" style="--x:35.546875%; --y:15.234375%">
+        <header class="case-head">
+          <h4>ポアソン λ = 10</h4>
+          <p>PSNR <strong>14.12 → 26.37 dB</strong></p>
+        </header>
+        <div class="triptych">
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/12-clean.png" alt="McMaster18 12の原画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>原画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/12-poiss10-noisy.png" alt="McMaster18 12のノイズ画像" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>ノイズ画像</figcaption>
+          </figure>
+          <figure>
+            <div class="frame">
+              <img src="e0-visual-assets/12-poiss10-denoised.png" alt="McMaster18 12の除去結果" width="256" height="256" loading="lazy">
+              <span class="region" aria-hidden="true"></span>
+            </div>
+            <figcaption>除去結果</figcaption>
+          </figure>
+        </div>
+        <div class="zoom">
+          <p>枠内の拡大 · 80 × 80 px</p>
+          <div class="triptych">
+          <img src="e0-visual-assets/12-clean-crop.png" alt="原画像の拡大、細い網目と明るさの異なる面" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/12-poiss10-noisy-crop.png" alt="ノイズ画像の拡大、細い網目と明るさの異なる面" width="80" height="80" loading="lazy">
+          <img src="e0-visual-assets/12-poiss10-denoised-crop.png" alt="除去結果の拡大、細い網目と明るさの異なる面" width="80" height="80" loading="lazy">
+          </div>
+        </div>
+        <p class="archive">保存値（除去後） 26.3686 dB · 画像再生成 26.3686 dB</p>
+      </article>
+        </div>
+      </details>
+    </section>
+    </div>
+  </section>
+
+  <section id="noise" aria-labelledby="noise-title">
+    <div class="wrap">
+      <header class="section-head">
+        <h2 id="noise-title">実画像から取り出したノイズ差分</h2>
+        <p>各画素で「ノイズ画像 − 原画像」の絶対値をRGBで平均した。すべて同じ明るさの尺度で、左から右へノイズが強くなる。</p>
+      </header>
+      <div class="noise-grid">
+      <div class="noise-block">
+        <h3>Kodak24 <code>kodim08</code> · ガウス</h3>
+        <div class="triptych">
+          <figure>
+            <img src="e0-visual-assets/kodim08-gauss10-diff.png" alt="Kodak24 kodim08、ガウス σ = 10 の絶対差分" width="256" height="256" loading="lazy">
+            <figcaption>σ = 10</figcaption>
+          </figure>
+          <figure>
+            <img src="e0-visual-assets/kodim08-gauss25-diff.png" alt="Kodak24 kodim08、ガウス σ = 25 の絶対差分" width="256" height="256" loading="lazy">
+            <figcaption>σ = 25</figcaption>
+          </figure>
+          <figure>
+            <img src="e0-visual-assets/kodim08-gauss50-diff.png" alt="Kodak24 kodim08、ガウス σ = 50 の絶対差分" width="256" height="256" loading="lazy">
+            <figcaption>σ = 50</figcaption>
+          </figure>
+        </div>
+      </div>
+      <div class="noise-block">
+        <h3>Kodak24 <code>kodim08</code> · ポアソン</h3>
+        <div class="triptych">
+          <figure>
+            <img src="e0-visual-assets/kodim08-poiss50-diff.png" alt="Kodak24 kodim08、ポアソン λ = 50 の絶対差分" width="256" height="256" loading="lazy">
+            <figcaption>λ = 50</figcaption>
+          </figure>
+          <figure>
+            <img src="e0-visual-assets/kodim08-poiss25-diff.png" alt="Kodak24 kodim08、ポアソン λ = 25 の絶対差分" width="256" height="256" loading="lazy">
+            <figcaption>λ = 25</figcaption>
+          </figure>
+          <figure>
+            <img src="e0-visual-assets/kodim08-poiss10-diff.png" alt="Kodak24 kodim08、ポアソン λ = 10 の絶対差分" width="256" height="256" loading="lazy">
+            <figcaption>λ = 10</figcaption>
+          </figure>
+        </div>
+      </div>
+      <div class="noise-block">
+        <h3>McMaster18 <code>12</code> · ガウス</h3>
+        <div class="triptych">
+          <figure>
+            <img src="e0-visual-assets/12-gauss10-diff.png" alt="McMaster18 12、ガウス σ = 10 の絶対差分" width="256" height="256" loading="lazy">
+            <figcaption>σ = 10</figcaption>
+          </figure>
+          <figure>
+            <img src="e0-visual-assets/12-gauss25-diff.png" alt="McMaster18 12、ガウス σ = 25 の絶対差分" width="256" height="256" loading="lazy">
+            <figcaption>σ = 25</figcaption>
+          </figure>
+          <figure>
+            <img src="e0-visual-assets/12-gauss50-diff.png" alt="McMaster18 12、ガウス σ = 50 の絶対差分" width="256" height="256" loading="lazy">
+            <figcaption>σ = 50</figcaption>
+          </figure>
+        </div>
+      </div>
+      <div class="noise-block">
+        <h3>McMaster18 <code>12</code> · ポアソン</h3>
+        <div class="triptych">
+          <figure>
+            <img src="e0-visual-assets/12-poiss50-diff.png" alt="McMaster18 12、ポアソン λ = 50 の絶対差分" width="256" height="256" loading="lazy">
+            <figcaption>λ = 50</figcaption>
+          </figure>
+          <figure>
+            <img src="e0-visual-assets/12-poiss25-diff.png" alt="McMaster18 12、ポアソン λ = 25 の絶対差分" width="256" height="256" loading="lazy">
+            <figcaption>λ = 25</figcaption>
+          </figure>
+          <figure>
+            <img src="e0-visual-assets/12-poiss10-diff.png" alt="McMaster18 12、ポアソン λ = 10 の絶対差分" width="256" height="256" loading="lazy">
+            <figcaption>λ = 10</figcaption>
+          </figure>
+        </div>
+      </div>
+      </div>
+      <div class="noise-scale">
+        <strong>平均絶対差</strong><span>0</span><div class="ramp" aria-hidden="true"></div><span>0.25以上（画素値0–1換算）</span>
+      </div>
+      <p class="noise-observation">ポアソンでは、McMaster18の網の背後にある明部に差分が強く出る。差分は表示用のクリップをかける前のテンソルから計算した。</p>
+    </div>
+  </section>
+
+  <section id="results" aria-labelledby="results-title">
+    <div class="wrap">
+      <header class="section-head">
+        <h2 id="results-title">PSNR集計</h2>
+        <p>各条件の平均値を保存済みの <code>summary.csv</code> から転記した。PSNRの単位はdB、差は再現値 − 論文値。サムネイルから同じ条件の拡大比較を開ける。</p>
+      </header>
+    <div class="table-block">
+      <h3 id="table-gauss">ガウスノイズ</h3>
+      <div class="table-scroll" tabindex="0" role="region" aria-labelledby="table-gauss">
+        <table aria-labelledby="table-gauss">
+          <thead>
+            <tr>
+              <th scope="col">データセット</th>
+              <th scope="col">強さ</th>
+              <th scope="col">枚数</th>
+              <th scope="col">シード数</th>
+              <th scope="col">再現 PSNR</th>
+              <th scope="col">論文 PSNR</th>
+              <th scope="col">差 (dB)</th>
+              <th scope="col">判定</th>
+              <th scope="col">SSIM</th>
+              <th scope="col">秒/枚</th>
+              <th scope="col">ノイズ → 除去</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Kodak24</th>
+              <td>σ = 10</td>
+              <td>24</td>
+              <td>1</td>
+              <td class="actual">33.39</td>
+              <td>33.69</td>
+              <td>-0.30</td>
+              <td class="ok">OK</td>
+              <td>0.9097</td>
+              <td>42.2</td>
+              <td>
+                <a class="preview" href="#sample-kodim08-gauss10" aria-label="Kodak24 kodim08、ガウス σ = 10 の比較を開く">
+                  <img src="e0-visual-assets/kodim08-gauss10-noisy.png" alt="" width="32" height="32" loading="lazy">
+                  <img src="e0-visual-assets/kodim08-gauss10-denoised.png" alt="" width="32" height="32" loading="lazy">
+                  <span>kodim08 ↑</span>
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Kodak24</th>
+              <td>σ = 25</td>
+              <td>24</td>
+              <td>1</td>
+              <td class="actual">28.79</td>
+              <td>29.07</td>
+              <td>-0.28</td>
+              <td class="ok">OK</td>
+              <td>0.7877</td>
+              <td>42.8</td>
+              <td>
+                <a class="preview" href="#sample-kodim08-gauss25" aria-label="Kodak24 kodim08、ガウス σ = 25 の比較を開く">
+                  <img src="e0-visual-assets/kodim08-gauss25-noisy.png" alt="" width="32" height="32" loading="lazy">
+                  <img src="e0-visual-assets/kodim08-gauss25-denoised.png" alt="" width="32" height="32" loading="lazy">
+                  <span>kodim08 ↑</span>
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Kodak24</th>
+              <td>σ = 50</td>
+              <td>24</td>
+              <td>1</td>
+              <td class="actual">24.69</td>
+              <td>24.81</td>
+              <td>-0.12</td>
+              <td class="ok">OK</td>
+              <td>0.6172</td>
+              <td>43.0</td>
+              <td>
+                <a class="preview" href="#sample-kodim08-gauss50" aria-label="Kodak24 kodim08、ガウス σ = 50 の比較を開く">
+                  <img src="e0-visual-assets/kodim08-gauss50-noisy.png" alt="" width="32" height="32" loading="lazy">
+                  <img src="e0-visual-assets/kodim08-gauss50-denoised.png" alt="" width="32" height="32" loading="lazy">
+                  <span>kodim08 ↑</span>
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">McMaster18</th>
+              <td>σ = 10</td>
+              <td>18</td>
+              <td>1</td>
+              <td class="actual">34.02</td>
+              <td>34.21</td>
+              <td>-0.19</td>
+              <td class="ok">OK</td>
+              <td>0.9040</td>
+              <td>41.4</td>
+              <td>
+                <a class="preview" href="#sample-12-gauss10" aria-label="McMaster18 12、ガウス σ = 10 の比較を開く">
+                  <img src="e0-visual-assets/12-gauss10-noisy.png" alt="" width="32" height="32" loading="lazy">
+                  <img src="e0-visual-assets/12-gauss10-denoised.png" alt="" width="32" height="32" loading="lazy">
+                  <span>12 ↑</span>
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">McMaster18</th>
+              <td>σ = 25</td>
+              <td>18</td>
+              <td>1</td>
+              <td class="actual">28.62</td>
+              <td>28.80</td>
+              <td>-0.18</td>
+              <td class="ok">OK</td>
+              <td>0.7687</td>
+              <td>41.4</td>
+              <td>
+                <a class="preview" href="#sample-12-gauss25" aria-label="McMaster18 12、ガウス σ = 25 の比較を開く">
+                  <img src="e0-visual-assets/12-gauss25-noisy.png" alt="" width="32" height="32" loading="lazy">
+                  <img src="e0-visual-assets/12-gauss25-denoised.png" alt="" width="32" height="32" loading="lazy">
+                  <span>12 ↑</span>
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">McMaster18</th>
+              <td>σ = 50</td>
+              <td>18</td>
+              <td>1</td>
+              <td class="actual">23.84</td>
+              <td>24.02</td>
+              <td>-0.18</td>
+              <td class="ok">OK</td>
+              <td>0.5968</td>
+              <td>41.4</td>
+              <td>
+                <a class="preview" href="#sample-12-gauss50" aria-label="McMaster18 12、ガウス σ = 50 の比較を開く">
+                  <img src="e0-visual-assets/12-gauss50-noisy.png" alt="" width="32" height="32" loading="lazy">
+                  <img src="e0-visual-assets/12-gauss50-denoised.png" alt="" width="32" height="32" loading="lazy">
+                  <span>12 ↑</span>
+                </a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="table-block">
+      <h3 id="table-poiss">ポアソンノイズ</h3>
+      <div class="table-scroll" tabindex="0" role="region" aria-labelledby="table-poiss">
+        <table aria-labelledby="table-poiss">
+          <thead>
+            <tr>
+              <th scope="col">データセット</th>
+              <th scope="col">強さ</th>
+              <th scope="col">枚数</th>
+              <th scope="col">シード数</th>
+              <th scope="col">再現 PSNR</th>
+              <th scope="col">論文 PSNR</th>
+              <th scope="col">差 (dB)</th>
+              <th scope="col">判定</th>
+              <th scope="col">SSIM</th>
+              <th scope="col">秒/枚</th>
+              <th scope="col">ノイズ → 除去</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Kodak24</th>
+              <td>λ = 50</td>
+              <td>24</td>
+              <td>1</td>
+              <td class="actual">29.38</td>
+              <td>29.45</td>
+              <td>-0.07</td>
+              <td class="ok">OK</td>
+              <td>0.8085</td>
+              <td>65.0</td>
+              <td>
+                <a class="preview" href="#sample-kodim08-poiss50" aria-label="Kodak24 kodim08、ポアソン λ = 50 の比較を開く">
+                  <img src="e0-visual-assets/kodim08-poiss50-noisy.png" alt="" width="32" height="32" loading="lazy">
+                  <img src="e0-visual-assets/kodim08-poiss50-denoised.png" alt="" width="32" height="32" loading="lazy">
+                  <span>kodim08 ↑</span>
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Kodak24</th>
+              <td>λ = 25</td>
+              <td>24</td>
+              <td>1</td>
+              <td class="actual">27.49</td>
+              <td>27.52</td>
+              <td>-0.03</td>
+              <td class="ok">OK</td>
+              <td>0.7365</td>
+              <td>65.3</td>
+              <td>
+                <a class="preview" href="#sample-kodim08-poiss25" aria-label="Kodak24 kodim08、ポアソン λ = 25 の比較を開く">
+                  <img src="e0-visual-assets/kodim08-poiss25-noisy.png" alt="" width="32" height="32" loading="lazy">
+                  <img src="e0-visual-assets/kodim08-poiss25-denoised.png" alt="" width="32" height="32" loading="lazy">
+                  <span>kodim08 ↑</span>
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">Kodak24</th>
+              <td>λ = 10</td>
+              <td>24</td>
+              <td>1</td>
+              <td class="actual">24.88</td>
+              <td>24.92</td>
+              <td>-0.04</td>
+              <td class="ok">OK</td>
+              <td>0.6097</td>
+              <td>65.0</td>
+              <td>
+                <a class="preview" href="#sample-kodim08-poiss10" aria-label="Kodak24 kodim08、ポアソン λ = 10 の比較を開く">
+                  <img src="e0-visual-assets/kodim08-poiss10-noisy.png" alt="" width="32" height="32" loading="lazy">
+                  <img src="e0-visual-assets/kodim08-poiss10-denoised.png" alt="" width="32" height="32" loading="lazy">
+                  <span>kodim08 ↑</span>
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">McMaster18</th>
+              <td>λ = 50</td>
+              <td>18</td>
+              <td>1</td>
+              <td class="actual">30.44</td>
+              <td>30.36</td>
+              <td>+0.08</td>
+              <td class="ok">OK</td>
+              <td>0.8519</td>
+              <td>36.4</td>
+              <td>
+                <a class="preview" href="#sample-12-poiss50" aria-label="McMaster18 12、ポアソン λ = 50 の比較を開く">
+                  <img src="e0-visual-assets/12-poiss50-noisy.png" alt="" width="32" height="32" loading="lazy">
+                  <img src="e0-visual-assets/12-poiss50-denoised.png" alt="" width="32" height="32" loading="lazy">
+                  <span>12 ↑</span>
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">McMaster18</th>
+              <td>λ = 25</td>
+              <td>18</td>
+              <td>1</td>
+              <td class="actual">28.48</td>
+              <td>28.41</td>
+              <td>+0.07</td>
+              <td class="ok">OK</td>
+              <td>0.7959</td>
+              <td>36.1</td>
+              <td>
+                <a class="preview" href="#sample-12-poiss25" aria-label="McMaster18 12、ポアソン λ = 25 の比較を開く">
+                  <img src="e0-visual-assets/12-poiss25-noisy.png" alt="" width="32" height="32" loading="lazy">
+                  <img src="e0-visual-assets/12-poiss25-denoised.png" alt="" width="32" height="32" loading="lazy">
+                  <span>12 ↑</span>
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <th scope="row">McMaster18</th>
+              <td>λ = 10</td>
+              <td>18</td>
+              <td>1</td>
+              <td class="actual">25.84</td>
+              <td>25.75</td>
+              <td>+0.09</td>
+              <td class="ok">OK</td>
+              <td>0.6944</td>
+              <td>35.4</td>
+              <td>
+                <a class="preview" href="#sample-12-poiss10" aria-label="McMaster18 12、ポアソン λ = 10 の比較を開く">
+                  <img src="e0-visual-assets/12-poiss10-noisy.png" alt="" width="32" height="32" loading="lazy">
+                  <img src="e0-visual-assets/12-poiss10-denoised.png" alt="" width="32" height="32" loading="lazy">
+                  <span>12 ↑</span>
+                </a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+      <div class="notes">
+        <p>合格範囲はKodak24の σ = 25 が ±0.30 dB、その他の条件は ±0.50 dB。</p>
+        <p>表は元の実験の全画像平均。右端の除去例は各データセットから選んだ1枚を再生成したもの。</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="wrap">
+  <h2>データと画像の出所</h2>
+  <ul>
+    <li>評価画像は <code>data/kodak24/kodim08.png</code> と <code>data/mcmaster18/12.tif</code>。ノイズ入力は <code>data/noisy/</code> に保存されているテンソルを使用し、入力PSNRが元の <code>rows.csv</code> と一致することを確認した。</li>
+    <li>元の実験は画像を保存していないため、掲載する除去画像は保存済みの <code>config.yaml</code>、<code>rows.csv</code> の実行デバイス（掲載サンプルはすべてMPS）、<code>src/zsdn</code> の実装を使って2枚 × 6条件を再生成した。表示用RGB画像は [0, 1] に収めて8ビットPNG化した。</li>
+    <li>集計と画像別の保存値は <code>results/e0_gauss/0e3e6a0177/</code> と <code>results/e0_poiss/eefdf7a422/</code>。論文値は集計に記録されたMansour &amp; Heckel（CVPR 2023）Table 1の値。</li>
+  </ul>
+</footer>
+</body>
+</html>

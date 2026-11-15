@@ -1,0 +1,21 @@
+# E1: 合成線画ベンチマーク（ZS-N2N）。条件は e1_classic.yaml と同じ
+name: e1_zsn2n
+# ノイズは [0,1] に切り詰めない（理由は e1_classic.yaml）
+bench:
+  widths: [1, 1.5, 2, 3, 4]
+  n_angles: 8            # 0°〜157.5°、22.5° 刻み
+  contrasts: [1.0, 0.5]  # 1.0 = 黒いペン、0.5 = 鉛筆のような灰色
+  size: 256
+  jitter: true           # 線の間隔を 12〜24px でランダムに（等間隔は BM3D に有利すぎる）
+noises:
+  - {kind: gauss, level: 10, clip: false}
+  - {kind: gauss, level: 25, clip: false}
+  - {kind: gauss, level: 50, clip: false}
+noise_seeds: [0]
+init_seeds: [0]
+methods:
+  - {name: zsn2n, chan_embed: 48, iters: 2000, lr: 0.001, step_size: 1500, gamma: 0.5}
+device: auto
+threads: 1
+out_dir: results
+noise_cache: data/noisy

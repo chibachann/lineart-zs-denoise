@@ -31,26 +31,28 @@ def load_image(path: str | Path, crop: int | None = 256) -> torch.Tensor:
     return torch.from_numpy(img).permute(2, 0, 1).unsqueeze(0).contiguous()
 
 
-def add_noise(clean: torch.Tensor, kind: str, level: float, seed: int) -> torch.Tensor:
+def add_noise(clean: torch.Tensor, kind: str, level: float, seed: int, clip: bool = True) -> torch.Tensor:
     """公式 Colab と同じノイズを、固定シードで加える。
 
-    kind="gauss": level は 0〜255 のスケールの標準偏差。加えたあと [0,1] に切り詰める
+    kind="gauss": level は 0〜255 のスケールの標準偏差。clip=True なら加えたあと [0,1] に切り詰める
+                  （clip=False は E0 の検証用。切り詰めると暗部・明部でノイズが偏り、論文との差の原因候補になる）
     kind="poiss": level は λ。poisson(λ·x)/λ
     """
     g = torch.Generator().manual_seed(seed)
     if kind == "gauss":
         noise = torch.randn(clean.shape, generator=g) * (level / 255.0)
-        return torch.clamp(clean + noise, 0, 1)
+        return torch.clamp(clean + noise, 0, 1) if clip else clean + noise
     if kind == "poiss":
         return torch.poisson(level * clean, generator=g) / level
     raise ValueError(f"未知のノイズの種類: {kind}")
 
 
-def cached_noisy(clean: torch.Tensor, kind: str, level: float, seed: int, cache_path: Path) -> torch.Tensor:
+def cached_noisy(clean: torch.Tensor, kind: str, level: float, seed: int, cache_path: Path,
+                 clip: bool = True) -> torch.Tensor:
     """ノイズ画像をキャッシュから読む。なければ作って保存する（同じ条件なら全手法で同じノイズになる）。"""
     if cache_path.exists():
         return torch.load(cache_path)
-    noisy = add_noise(clean, kind, level, seed)
+    noisy = add_noise(clean, kind, level, seed, clip)
     cache_path.parent.mkdir(parents=True, exist_ok=True)
     torch.save(noisy, cache_path)
     return noisy

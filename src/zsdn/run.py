@@ -62,7 +62,8 @@ def run_task(task: dict) -> dict:
     """1 枚・1 条件・1 シードを処理して、CSV の 1 行を返す（別プロセスで実行される）。"""
     torch.set_num_threads(task["threads"])
     clean = load_image(task["path"], task["crop"])
-    noisy = cached_noisy(clean, task["noise"], task["level"], task["noise_seed"], Path(task["noise_cache"]))
+    noisy = cached_noisy(clean, task["noise"], task["level"], task["noise_seed"], Path(task["noise_cache"]),
+                         task.get("clip", True))
     m = task["method"]
     if m["name"] == "zsn2n":
         cfg = ZSN2NConfig(**{k: v for k, v in m.items() if k != "name"})
@@ -125,11 +126,13 @@ def main() -> None:
                         key = (ds["name"], p.stem, nz["kind"], str(float(nz["level"])), str(ns), str(isd))
                         if key in done:
                             continue
-                        cache = Path(cfg.get("noise_cache", "data/noisy")) / ds["name"] / f"{p.stem}_{nz['kind']}{nz['level']}_c{cfg.get('crop', 256)}_s{ns}.pt"
+                        clip = nz.get("clip", True)  # 切り詰めないノイズは別のキャッシュに保存する
+                        cache = Path(cfg.get("noise_cache", "data/noisy")) / ds["name"] / (
+                            f"{p.stem}_{nz['kind']}{nz['level']}{'' if clip else '_noclip'}_c{cfg.get('crop', 256)}_s{ns}.pt")
                         tasks.append({
                             "exp": cfg["name"], "dataset": ds["name"], "path": str(p), "crop": cfg.get("crop", 256),
                             "noise": nz["kind"], "level": nz["level"], "noise_seed": ns, "init_seed": isd,
-                            "noise_cache": str(cache), "method": cfg["method"], "device": device,
+                            "noise_cache": str(cache), "clip": clip, "method": cfg["method"], "device": device,
                             "threads": int(cfg.get("threads_per_worker", 1)) if device == "cpu" else 1, "hash": h,
                         })
 

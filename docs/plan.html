@@ -84,6 +84,7 @@ table.t td:first-child{font-family:var(--f-mono);font-weight:500;white-space:now
 .rules{margin:0;padding-left:1.3em;display:flex;flex-direction:column;gap:6px;font-size:14.5px}
 .note{background:var(--focus-soft);border-radius:10px;padding:14px 18px;font-size:14.5px;display:flex;flex-direction:column;gap:6px}
 footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px}
+.idmap{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-top:12px}.idmap h3{font-size:14px;margin:0 0 6px}.t.ids{min-width:0;width:100%}.t.ids td{padding:5px 8px}.t.ids td.oid{font-family:var(--f-mono);color:var(--muted);width:3em}
 </style>
 
 <div class="wrap">
@@ -95,17 +96,24 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padd
     <span class="eyebrow">研究の問い</span>
     <p class="q">ノイズの乗った画像1枚だけで学習する「ゼロショットのノイズ除去」は、線画（細い線と平らな塗り）でも線を壊さずに使えるか。壊すなら、その原因はどこにあり、どう直せば線を守れるか。</p>
   </div>
-  <nav class="toc" aria-label="目次"><a href="#hyp">仮説</a><a href="#core">核心の図</a><a href="#goals">ゴール</a><a href="#criteria">評価の基準</a><a href="#methods">新手法の案</a><a href="#exp">実験計画</a><a href="#data">データと指標</a><a href="#refs">参考文献</a><a href="#schedule">日程</a><a href="#rules">進め方のルール</a></nav>
+  <nav class="toc" aria-label="目次"><a href="#ids">旧 ID との対応</a><a href="#hyp">仮説</a><a href="#core">核心の図</a><a href="#goals">ゴール</a><a href="#criteria">評価の基準</a><a href="#methods">新手法の案</a><a href="#exp">実験計画</a><a href="#data">データと指標</a><a href="#refs">参考文献</a><a href="#schedule">日程</a><a href="#rules">進め方のルール</a></nav>
 </header>
+
+<section id="ids">
+  <span class="eyebrow">呼び方の対応</span>
+  <h2>旧 ID との対応表</h2>
+  <p>このページでは、実験・ゴール・仮説・手法案を内容の分かる名前で呼びます。以前の版や、コード・設定ファイル・結果フォルダの名前（例：<code>configs/e0_gauss.yaml</code>、<code>results/e1_zsn2n/</code>）では旧 ID のままなので、読み替えにこの表を使ってください。</p>
+  <div class="idmap"><div><h3>実験</h3><table class="t ids"><tr><td class="oid">E0</td><td>論文再現</td></tr><tr><td class="oid">E1</td><td>線の壊れ方調査</td></tr><tr><td class="oid">E2</td><td>部品ごとの効き方調査</td></tr><tr><td class="oid">E3</td><td>改良手法の評価</td></tr><tr><td class="oid">E4</td><td>写真での副作用チェック</td></tr><tr><td class="oid">E5</td><td>実スキャン線画での検証</td></tr><tr><td class="oid">E6</td><td>処理時間の計測</td></tr></table></div><div><h3>ゴール</h3><table class="t ids"><tr><td class="oid">G0</td><td>再現の達成</td></tr><tr><td class="oid">G1</td><td>原因の特定</td></tr><tr><td class="oid">G2</td><td>線を守る改良</td></tr><tr><td class="oid">G3</td><td>実スキャンへの拡張と報告</td></tr></table></div><div><h3>仮説</h3><table class="t ids"><tr><td class="oid">H1</td><td>向きの偏り</td></tr><tr><td class="oid">H2</td><td>太さの依存</td></tr><tr><td class="oid">H3</td><td>直せる</td></tr></table></div><div><h3>手法案</h3><table class="t ids"><tr><td class="oid">M1</td><td>間引き方を混ぜる</td></tr><tr><td class="oid">M2</td><td>線の向きに合わせて間引く</td></tr><tr><td class="oid">M3</td><td>線の周りの誤差を重く数える</td></tr><tr><td class="oid">M4</td><td>回転・反転の平均</td></tr><tr><td class="oid">M5</td><td>墨と紙の2値性を使う</td></tr><tr><td class="oid">M6</td><td>相関のあるノイズへの対応</td></tr></table></div></div>
+</section>
 
 <section id="hyp">
   <span class="eyebrow">仮説</span>
   <h2>何が起きると予想しているか</h2>
   <div class="prose"><p>基準にする手法は Zero-Shot Noise2Noise（ZS-N2N, CVPR 2023）です。ノイズ画像を 2×2 のマスごとに「左上と右下の平均」「右上と左下の平均」の2枚に間引き、片方からもう片方を予測するよう小さなネットを学習します。2枚は同じ絵に別々のノイズが乗ったもの、とみなせるという前提に立っています。写真のようになめらかな画像ではこの前提がほぼ成り立ちますが、1ピクセル幅の線ではそうとは限りません。</p></div>
   <div class="hyp">
-    <div><b class="id">H1　向きの偏り</b><p>斜め 45° の細い線は、間引いた2枚の片方にだけ写り、もう片方には写らない。ネットはそれを「ノイズ」として学び、<b>斜めの細い線だけが薄くなる・途切れる</b>。縦横の線では起きにくい。</p></div>
-    <div><b class="id">H2　太さの依存</b><p>線が細いほど（1〜1.5px）この影響は強く、3px 以上ではほぼ消える。<b>線幅と向きで線の残り方を表にすると、はっきりした傾向が出る</b>。</p></div>
-    <div><b class="id">H3　直せる</b><p>間引き方を線の向きに合わせる、間引き方を複数混ぜる、線の周りの誤差を重く数える、などの工夫で、<b>写真での性能を落とさずに</b>線の残り方を改善できる。</p></div>
+    <div><b class="id">向きの偏り</b><p>斜め 45° の細い線は、間引いた2枚の片方にだけ写り、もう片方には写らない。ネットはそれを「ノイズ」として学び、<b>斜めの細い線だけが薄くなる・途切れる</b>。縦横の線では起きにくい。</p></div>
+    <div><b class="id">太さの依存</b><p>線が細いほど（1〜1.5px）この影響は強く、3px 以上ではほぼ消える。<b>線幅と向きで線の残り方を表にすると、はっきりした傾向が出る</b>。</p></div>
+    <div><b class="id">直せる</b><p>間引き方を線の向きに合わせる、間引き方を複数混ぜる、線の周りの誤差を重く数える、などの工夫で、<b>写真での性能を落とさずに</b>線の残り方を改善できる。</p></div>
   </div>
 </section>
 
@@ -120,7 +128,7 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padd
       <button class="btn" type="button" id="o-a" data-o="a" aria-pressed="false">斜め ／ 45°</button>
     </div>
     <div class="scroll"><svg id="ds" viewBox="0 0 900 300" role="img" aria-label="2×2 の間引きで線がどう分かれるか" style="min-width:640px"></svg></div>
-    <div class="howto"><b>図の見方</b><span>左は 8×8 ピクセルの画像で、1ピクセル幅の線が入っています（ノイズなし）。細い枠が 2×2 のマスです。中央の2枚が ZS-N2N の間引き方で作る4×4 の画像で、D1 は各マスの「右上と左下の平均」、D2 は「左上と右下の平均」です。右端は D1 と D2 の差です。</span><span>横線・縦線では D1 と D2 に同じ濃さ（半分の濃さ）で写り、差は 0 です。斜め線では、<b>片方にだけ線が写り、もう片方は真っ白</b>になります。ZS-N2N は「D1 から D2 を予測する」ので、斜めの細い線は「予測できない成分＝ノイズ」として消される方向に学習が進むはずです。これが仮説 H1 の根拠で、最初の実験で確かめます。</span></div>
+    <div class="howto"><b>図の見方</b><span>左は 8×8 ピクセルの画像で、1ピクセル幅の線が入っています（ノイズなし）。細い枠が 2×2 のマスです。中央の2枚が ZS-N2N の間引き方で作る4×4 の画像で、D1 は各マスの「右上と左下の平均」、D2 は「左上と右下の平均」です。右端は D1 と D2 の差です。</span><span>横線・縦線では D1 と D2 に同じ濃さ（半分の濃さ）で写り、差は 0 です。斜め線では、<b>片方にだけ線が写り、もう片方は真っ白</b>になります。ZS-N2N は「D1 から D2 を予測する」ので、斜めの細い線は「予測できない成分＝ノイズ」として消される方向に学習が進むはずです。これが仮説「向きの偏り」の根拠で、「線の壊れ方調査」で確かめます。</span></div>
   </figure>
 </section>
 
@@ -128,10 +136,10 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padd
   <span class="eyebrow">ゴール</span>
   <h2>どこを目指すか：4段階のゴール</h2>
   <div class="ladder">
-    <div class="rung"><span class="g">G0</span><div><h3>基準手法の再現 <span class="pass">達成（2026-11-14）</span></h3><ul><li>ZS-N2N を自分で実装し、論文の Table 1（Kodak24・McMaster18、ガウスノイズ σ=10/25/50）を再現する</li><li><span class="pass">合格</span>：Kodak24 σ=25 で 29.07 dB ±0.3 dB、6条件すべてで論文値 ±0.5 dB 以内</li><li>M4 の CPU での実行時間も記録する（論文は Intel i9 の CPU で 1枚 80 秒）</li></ul></div></div>
-    <div class="rung"><span class="g">G1</span><div><h3>線画での失敗を突き止める</h3><ul><li>線画のベンチマーク（線の太さ・向きを制御した合成線画）を作り、ZS-N2N で線がどう壊れるかを測る</li><li><span class="pass">合格</span>：仮説 H1・H2 を、向き別・太さ別の「線の残り方」の表で、支持または否定できる（どちらの結果でも成果）</li></ul></div></div>
-    <div class="rung main"><span class="g">G2</span><div><h3>線を守る新しい手法（本命）</h3><ul><li>手法案 M1〜M4 を試し、線画に強いゼロショットのノイズ除去を作る</li><li><span class="pass">合格</span>：線画で ZS-N2N より PSNR +0.5 dB 以上、かつ線の再現率 +5 ポイント以上。写真（Kodak24）での低下は 0.1 dB 以内、計算時間は 2 倍以内</li></ul></div></div>
-    <div class="rung"><span class="g">G3</span><div><h3>実際のスキャン画像で使えることを示す</h3><ul><li>紙の質感・JPEG 圧縮・スキャンのムラなど、ピクセルごとに独立でないノイズへ広げる</li><li><span class="pass">合格</span>：自分で描いてスキャンした線画 10〜20 枚で、見た目の比較と、きれいな原画がある場合は数値で優位を示す。成果を技術レポート（arXiv など）または国内学会（MIRU、Visual Computing、NICOGRAPH など）の発表にまとめる</li></ul></div></div>
+    <div class="rung"><span class="g">1</span><div><h3>再現の達成 <span class="pass">達成（2026-11-14）</span></h3><ul><li>基準手法 ZS-N2N を自分で実装し、論文の Table 1（Kodak24・McMaster18、ガウスノイズ σ=10/25/50）を再現する</li><li><span class="pass">合格</span>：Kodak24 σ=25 で 29.07 dB ±0.3 dB、6条件すべてで論文値 ±0.5 dB 以内</li><li>Apple M4 の CPU での実行時間も記録する（論文は Intel i9 の CPU で 1枚 80 秒）</li></ul></div></div>
+    <div class="rung"><span class="g">2</span><div><h3>原因の特定</h3><ul><li>線画のベンチマーク（線の太さ・向きを制御した合成線画）を作り、ZS-N2N で線がどう壊れるかを測る</li><li><span class="pass">合格</span>：仮説「向きの偏り」「太さの依存」を、向き別・太さ別の「線の残り方」の表で、支持または否定できる（どちらの結果でも成果）</li></ul></div></div>
+    <div class="rung main"><span class="g">3</span><div><h3>線を守る改良（本命）</h3><ul><li>手法案（間引き方を混ぜる・線の向きに合わせて間引く・線の周りの誤差を重く数える・回転・反転の平均）を試し、線画に強いゼロショットのノイズ除去を作る</li><li><span class="pass">合格</span>：線画で ZS-N2N より PSNR +0.5 dB 以上、かつ線の再現率 +5 ポイント以上。写真（Kodak24）での低下は 0.1 dB 以内、計算時間は 2 倍以内</li></ul></div></div>
+    <div class="rung"><span class="g">4</span><div><h3>実スキャンへの拡張と報告</h3><ul><li>実際のスキャン画像で使えることを示す</li><li>紙の質感・JPEG 圧縮・スキャンのムラなど、ピクセルごとに独立でないノイズへ広げる</li><li><span class="pass">合格</span>：自分で描いてスキャンした線画 10〜20 枚で、見た目の比較と、きれいな原画がある場合は数値で優位を示す。成果を技術レポート（arXiv など）または国内学会（MIRU、Visual Computing、NICOGRAPH など）の発表にまとめる</li></ul></div></div>
   </div>
 </section>
 
@@ -142,11 +150,11 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padd
     <tr><th>項目</th><th>基準</th><th>理由</th></tr>
     <tr><td>主指標（全体）</td><td>PSNR（dB）と SSIM。画像は中央 256×256 を切り出し、値域 [0,1] で計算</td><td>ZS-N2N 論文と同じ条件で、論文の数値と直接比べるため</td></tr>
     <tr><td>主指標（線）</td><td>線の再現率：正解の線を細線化（骨格化）し、そのうち除去後の画像を2値化した線で覆われている割合。ほかに線の適合率と clDice</td><td>PSNR は面積の大きい背景に支配され、細い線の消失を見落とすため</td></tr>
-    <tr><td>補助指標</td><td>線上の PSNR（正解の線を 2px 太らせた領域だけで計算）、線の濃さの保持率（線上の平均の濃さ ÷ 正解の濃さ）、向き別（0°・22.5°・45°…）の再現率</td><td>仮説 H1・H2 を直接確かめるため</td></tr>
+    <tr><td>補助指標</td><td>線上の PSNR（正解の線を 2px 太らせた領域だけで計算）、線の濃さの保持率（線上の平均の濃さ ÷ 正解の濃さ）、向き別（0°・22.5°・45°…）の再現率</td><td>仮説「向きの偏り」「太さの依存」を直接確かめるため</td></tr>
     <tr><td>改善の判定</td><td>同じ画像・同じノイズで比べ、画像ごとの差に Wilcoxon 符号順位検定を行い p &lt; 0.05。平均と標準偏差を必ず併記</td><td>平均値の小さな差を偶然と区別するため</td></tr>
     <tr><td>乱数</td><td>ノイズは固定シードで事前に作って保存し、全手法で同じものを使う。ネットの初期値は 3 シードで平均</td><td>比較の公平さと再現性のため</td></tr>
     <tr><td>写真での性能</td><td>Kodak24・McMaster18 で ZS-N2N からの低下 0.1 dB 以内</td><td>線画専用にして一般性を失っていないことを示すため</td></tr>
-    <tr><td>速さ</td><td>256×256 の1枚あたりの時間（M4 の CPU）。ZS-N2N の 2 倍以内</td><td>「軽くて速い」という手法の長所を保つため</td></tr>
+    <tr><td>速さ</td><td>256×256 の1枚あたりの時間（Apple M4 の CPU）。ZS-N2N の 2 倍以内</td><td>「軽くて速い」という手法の長所を保つため</td></tr>
   </table></div>
 </section>
 
@@ -154,18 +162,18 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padd
   <span class="eyebrow">新手法の案</span>
   <h2>試したい工夫（優先度順）</h2>
   <div class="methods">
-    <div class="card"><b class="id">M1　間引き方を混ぜる</b><p>D1/D2 の組み合わせを、斜め2通りに加えて「横に並んだ2画素」「縦に並んだ2画素」も使い、学習の反復ごとにランダムに選ぶ。どの向きの線も、どれかの組み合わせでは両方に写る。Neighbor2Neighbor（2021）のランダムな近傍選びに近い発想を、ZS-N2N の軽さのまま取り入れる。</p><span class="pri chip c-core">優先度 高・実装が簡単</span></div>
-    <div class="card"><b class="id">M2　線の向きに合わせて間引く</b><p>ノイズ画像から局所的な線の向き（構造テンソル）を推定し、線に沿った2画素を組にして間引く。線は両方に同じように写り、ノイズだけが独立になる。M1 より狙いを絞った版。</p><span class="pri chip c-core">優先度 高・本命候補</span></div>
-    <div class="card"><b class="id">M3　線の周りの誤差を重く数える</b><p>損失を、エッジの強さで重み付けする。エッジはノイズ画像を軽くぼかして求める（正解は使わない）。線を消す方向の学習にブレーキをかける。</p><span class="pri chip c-app">優先度 中</span></div>
-    <div class="card"><b class="id">M4　回転・反転の平均</b><p>画像を 90° 回転・左右反転した8通りで除去して平均する（テスト時の拡張）。向きの偏りを打ち消す、最も簡単な比較用の手法。M1・M2 がこれより良いことを示す必要がある。</p><span class="pri chip c-app">優先度 中・比較用</span></div>
-    <div class="card"><b class="id">M5　墨と紙の2値性を使う</b><p>線画は「墨の色」と「紙の色」にほぼ分かれる。出力をパレット（k-means で推定した数色）へ近づける弱い正則化を加える。テーマ F（AI 画像の色ムラ）にもつながる。</p><span class="pri chip c-mut">優先度 低・G2 の後</span></div>
-    <div class="card"><b class="id">M6　相関のあるノイズへの対応</b><p>紙の質感や JPEG のノイズは隣の画素と相関するので、2×2 の間引きの前提が崩れる。間引きの間隔を広げる、Median2Median（2025）の考え方を取り入れる、などを G3 で試す。</p><span class="pri chip c-mut">優先度 低・G3 で</span></div>
+    <div class="card"><b class="id">間引き方を混ぜる</b><p>D1/D2 の組み合わせを、斜め2通りに加えて「横に並んだ2画素」「縦に並んだ2画素」も使い、学習の反復ごとにランダムに選ぶ。どの向きの線も、どれかの組み合わせでは両方に写る。Neighbor2Neighbor（2021）のランダムな近傍選びに近い発想を、ZS-N2N の軽さのまま取り入れる。</p><span class="pri chip c-core">優先度 高・実装が簡単</span></div>
+    <div class="card"><b class="id">線の向きに合わせて間引く</b><p>ノイズ画像から局所的な線の向き（構造テンソル）を推定し、線に沿った2画素を組にして間引く。線は両方に同じように写り、ノイズだけが独立になる。「間引き方を混ぜる」より狙いを絞った版。</p><span class="pri chip c-core">優先度 高・本命候補</span></div>
+    <div class="card"><b class="id">線の周りの誤差を重く数える</b><p>損失を、エッジの強さで重み付けする。エッジはノイズ画像を軽くぼかして求める（正解は使わない）。線を消す方向の学習にブレーキをかける。</p><span class="pri chip c-app">優先度 中</span></div>
+    <div class="card"><b class="id">回転・反転の平均</b><p>画像を 90° 回転・左右反転した8通りで除去して平均する（テスト時の拡張）。向きの偏りを打ち消す、最も簡単な比較用の手法。「間引き方を混ぜる」「線の向きに合わせて間引く」がこれより良いことを示す必要がある。</p><span class="pri chip c-app">優先度 中・比較用</span></div>
+    <div class="card"><b class="id">墨と紙の2値性を使う</b><p>線画は「墨の色」と「紙の色」にほぼ分かれる。出力をパレット（k-means で推定した数色）へ近づける弱い正則化を加える。テーマ F（AI 画像の色ムラ）にもつながる。</p><span class="pri chip c-mut">優先度 低・「線を守る改良」の後</span></div>
+    <div class="card"><b class="id">相関のあるノイズへの対応</b><p>紙の質感や JPEG のノイズは隣の画素と相関するので、2×2 の間引きの前提が崩れる。間引きの間隔を広げる、Median2Median（2025）の考え方を取り入れる、などを「実スキャンへの拡張と報告」の段階で試す。</p><span class="pri chip c-mut">優先度 低・実スキャンの段階で</span></div>
   </div>
 </section>
 
 <section id="e0">
   <span class="eyebrow">結果 · 2026-11-14</span>
-  <h2>E0 の結果：ZS-N2N の再現は 12 条件すべて合格（G0 達成）</h2>
+  <h2>論文再現の結果：ZS-N2N の再現は 12 条件すべて合格（「再現の達成」をクリア）</h2>
   <p>自前実装の ZS-N2N（2.2 万パラメータ、Adam・学習率 1e-3・2000 回、公式 Colab と同じ設定）で、論文の Table 1 と同じ条件を流しました。中央 256² を切り出し、ノイズのシード 1 つ、初期値のシード 1 つです。数値は PSNR（dB）です。</p>
   <div class="scroll"><table class="t">
     <tr><th>データ</th><th>ノイズ</th><th>再現</th><th>論文</th><th>差</th><th>SSIM</th><th>判定</th></tr>
@@ -183,9 +191,9 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padd
     <tr><td>McMaster18</td><td>ポアソン λ=10</td><td>25.84</td><td>25.75</td><td>+0.09</td><td>0.694</td><td>合格</td></tr>
   </table></div>
   <div class="methods">
-    <div class="card"><b class="id">読み取れること</b><p>ポアソンは論文と ±0.1 dB 以内でほぼ一致。ガウスは全条件で 0.1〜0.3 dB 低く、Kodak24 σ=25 は基準ぎりぎりです。ガウスだけ一様に低いので、ノイズを [0,1] に切り詰める扱いの違いが疑わしい。シードを増やした確認と合わせて、E1 の前に 1 回だけ切り詰め無しでも測ります。</p></div>
-    <div class="card"><b class="id">実行時間（256²、1枚）</b><p>M4 の GPU（MPS）：約 42 秒（2 本同時だと 50〜65 秒）。kind 上のコンテナ（CPU 4 コア上限）：約 240 秒。M4 の CPU を 3 並列で回すと 1 枚 300 秒超。論文は GPU 20 秒・i9 CPU 80 秒。</p></div>
-    <div class="card"><b class="id">まだやっていないこと</b><p>BM3D の比較はまだ（E1 でまとめて流す）。シードは 1 つだけなので、ばらつきの幅は未計測。仮説 H1（斜め 45° の 1px 線は間引いた片方にしか写らない）は、間引きの部分だけ単体テストで確認済み。</p></div>
+    <div class="card"><b class="id">読み取れること</b><p>ポアソンは論文と ±0.1 dB 以内でほぼ一致。ガウスは全条件で 0.1〜0.3 dB 低く、Kodak24 σ=25 は基準ぎりぎりです。ガウスだけ一様に低いので、ノイズを [0,1] に切り詰める扱いの違いが疑わしい。シードを増やした確認と合わせて、「線の壊れ方調査」の前に 1 回だけ切り詰め無しでも測ります。</p></div>
+    <div class="card"><b class="id">実行時間（256²、1枚）</b><p>Apple M4 の GPU（MPS）：約 42 秒（2 本同時だと 50〜65 秒）。kind 上のコンテナ（CPU 4 コア上限）：約 240 秒。Apple M4 の CPU を 3 並列で回すと 1 枚 300 秒超。論文は GPU 20 秒・i9 CPU 80 秒。</p></div>
+    <div class="card"><b class="id">まだやっていないこと</b><p>BM3D の比較はまだ（「線の壊れ方調査」でまとめて流す）。シードは 1 つだけなので、ばらつきの幅は未計測。仮説「向きの偏り」（斜め 45° の 1px 線は間引いた片方にしか写らない）は、間引きの部分だけ単体テストで確認済み。</p></div>
   </div>
 </section>
 
@@ -193,14 +201,14 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padd
   <span class="eyebrow">実験計画</span>
   <h2>実験の一覧</h2>
   <div class="scroll"><table class="t">
-    <tr><th>ID</th><th>目的</th><th>データ</th><th>比べるもの</th><th>見る指標</th><th>合格ライン</th></tr>
-    <tr><td>E0</td><td>環境と再現（G0）</td><td>Kodak24、McMaster18（中央 256²）、ガウス σ=10/25/50、ポアソン λ=50/25/10</td><td>ZS-N2N（自前実装）、BM3D</td><td>PSNR、時間</td><td>論文値 ±0.5 dB（σ=25 は ±0.3 dB）</td></tr>
-    <tr><td>E1</td><td>仮説 H1・H2 の検証（G1）</td><td>合成線画：線幅 1/1.5/2/3/4px × 向き 8 方向 × σ=10/25/50</td><td>ZS-N2N、BM3D、DIP、メディアン、NLM</td><td>向き別・太さ別の線の再現率、線の濃さの保持率</td><td>向きによる差の有無を統計的に判定できること</td></tr>
-    <tr><td>E2</td><td>損失の各項の役割</td><td>E1 と同じ</td><td>ZS-N2N から残差損失／一貫性損失を外したもの</td><td>線の再現率</td><td>どの項が線を消しているかを特定</td></tr>
-    <tr><td>E3</td><td>新手法の比較（G2）</td><td>合成線画＋Quick, Draw! を描画した線画（ライセンス確認後）</td><td>M1、M2、M3、M4、組み合わせ</td><td>PSNR、線の再現率、clDice</td><td>G2 の合格ライン</td></tr>
-    <tr><td>E4</td><td>写真で性能が落ちないか</td><td>Kodak24、McMaster18</td><td>E3 で良かった手法 vs ZS-N2N</td><td>PSNR</td><td>低下 0.1 dB 以内</td></tr>
-    <tr><td>E5</td><td>実際のスキャン（G3）</td><td>自作の線画をスキャン（原画のデジタル版があれば正解に使う）、紙の質感・JPEG の合成劣化</td><td>E3 の上位手法、ZS-N2N、Median2Median 系</td><td>見た目、可能なら PSNR と線の指標</td><td>見た目で明確に優位、数値で有意</td></tr>
-    <tr><td>E6</td><td>速さ</td><td>256² と 1024² の画像</td><td>全手法</td><td>1枚あたりの時間（M4 CPU、参考に GPU）</td><td>ZS-N2N の 2 倍以内</td></tr>
+    <tr><th>実験</th><th>目的</th><th>データ</th><th>比べるもの</th><th>見る指標</th><th>合格ライン</th></tr>
+    <tr><td>論文再現</td><td>環境構築と、基準手法の数値の再現（→ 再現の達成）</td><td>Kodak24、McMaster18（中央 256²）、ガウス σ=10/25/50、ポアソン λ=50/25/10</td><td>ZS-N2N（自前実装）、BM3D</td><td>PSNR、時間</td><td>論文値 ±0.5 dB（σ=25 は ±0.3 dB）</td></tr>
+    <tr><td>線の壊れ方調査</td><td>仮説「向きの偏り」「太さの依存」の検証（→ 原因の特定）</td><td>合成線画：線幅 1/1.5/2/3/4px × 向き 8 方向 × σ=10/25/50</td><td>ZS-N2N、BM3D、DIP、メディアン、NLM</td><td>向き別・太さ別の線の再現率、線の濃さの保持率</td><td>向きによる差の有無を統計的に判定できること</td></tr>
+    <tr><td>部品ごとの効き方調査</td><td>損失の各項の役割</td><td>線の壊れ方調査と同じ</td><td>ZS-N2N から残差損失／一貫性損失を外したもの</td><td>線の再現率</td><td>どの項が線を消しているかを特定</td></tr>
+    <tr><td>改良手法の評価</td><td>新手法の比較（→ 線を守る改良）</td><td>合成線画＋Quick, Draw! を描画した線画（ライセンス確認後）</td><td>間引き方を混ぜる、線の向きに合わせて間引く、線の周りの誤差を重く数える、回転・反転の平均、それらの組み合わせ</td><td>PSNR、線の再現率、clDice</td><td>「線を守る改良」の合格ライン</td></tr>
+    <tr><td>写真での副作用チェック</td><td>写真で性能が落ちないか</td><td>Kodak24、McMaster18</td><td>改良手法の評価で良かった手法 vs ZS-N2N</td><td>PSNR</td><td>低下 0.1 dB 以内</td></tr>
+    <tr><td>実スキャン線画での検証</td><td>実際のスキャン（→ 実スキャンへの拡張と報告）</td><td>自作の線画をスキャン（原画のデジタル版があれば正解に使う）、紙の質感・JPEG の合成劣化</td><td>改良手法の評価の上位手法、ZS-N2N、Median2Median 系</td><td>見た目、可能なら PSNR と線の指標</td><td>見た目で明確に優位、数値で有意</td></tr>
+    <tr><td>処理時間の計測</td><td>速さ</td><td>256² と 1024² の画像</td><td>全手法</td><td>1枚あたりの時間（Apple M4 の CPU、参考に GPU）</td><td>ZS-N2N の 2 倍以内</td></tr>
   </table></div>
 </section>
 
@@ -224,7 +232,7 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padd
       <li><a href="https://ojs.aaai.org/index.php/AAAI/article/view/32575" target="_blank" rel="noopener">Zero-Shot Noise2Mean. AAAI 2025</a><em> …ランダムなマスクで間引き、入力と目標のずれを縮める</em></li>
       <li><a href="https://arxiv.org/html/2510.12646v1" target="_blank" rel="noopener">Zero-Shot CFC. arXiv 2510.12646, 2025</a><em> …周波数の整合性。実写ノイズ向け</em></li>
       <li><a href="https://arxiv.org/abs/2607.24135" target="_blank" rel="noopener">LoTA-N2N. arXiv 2607.24135, 2026</a><em> …2段階の適応。相関ノイズ・場所で変わるノイズでの限界を議論</em></li>
-      <li><a href="https://arxiv.org/html/2510.01666" target="_blank" rel="noopener">Median2Median. arXiv 2510.01666, 2025</a><em> …構造をもつノイズへのゼロショット対応（M6・G3 で使う）</em></li>
+      <li><a href="https://arxiv.org/html/2510.01666" target="_blank" rel="noopener">Median2Median. arXiv 2510.01666, 2025</a><em> …構造をもつノイズへのゼロショット対応（「相関のあるノイズへの対応」・実スキャンへの拡張で使う）</em></li>
       <li><a href="https://arxiv.org/abs/2506.12693" target="_blank" rel="noopener">ZS-NCD. arXiv 2506.12693, 2025</a><em> …圧縮ネットを使うゼロショット除去。比較候補</em></li>
     </ul></div>
     <div><h3>背景となる自己教師ありの除去</h3><ul>
@@ -232,7 +240,7 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padd
       <li>Ulyanov ら. Deep Image Prior. CVPR 2018<em> …比較手法（DIP）</em></li>
       <li>Krull ら. Noise2Void. CVPR 2019 ／ Batson &amp; Royer. Noise2Self. ICML 2019<em> …盲点（ブラインドスポット）型</em></li>
       <li>Quan ら. Self2Self. CVPR 2020<em> …比較手法（S2S）。強いノイズで強いが遅い</em></li>
-      <li>Huang ら. Neighbor2Neighbor. CVPR 2021<em> …ランダムな近傍での間引き（M1 の発想元）</em></li>
+      <li>Huang ら. Neighbor2Neighbor. CVPR 2021<em> …ランダムな近傍での間引き（「間引き方を混ぜる」の発想元）</em></li>
       <li>Dabov ら. BM3D. TIP 2007<em> …深層学習なしの強い比較手法</em></li>
     </ul></div>
     <div><h3>線画・漫画の復元</h3><ul>
@@ -253,7 +261,7 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padd
   <h2>8週間の目安</h2>
   <figure>
     <div class="scroll"><svg id="gantt" viewBox="0 0 900 270" role="img" aria-label="8週間の日程" style="min-width:640px"></svg></div>
-    <div class="howto"><b>図の見方</b><span>横軸が週（1〜8週目）、帯がそれぞれの作業の期間です。ひし形は判断のタイミングで、G1 の結果（線が本当に壊れるか）を見て、G2 の手法の優先度を決め直します。</span></div>
+    <div class="howto"><b>図の見方</b><span>横軸が週（1〜8週目）、帯がそれぞれの作業の期間です。ひし形は判断のタイミングで、「原因の特定」の結果（線が本当に壊れるか）を見て、「線を守る改良」で試す手法の優先度を決め直します。</span></div>
   </figure>
 </section>
 
@@ -265,10 +273,10 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padd
     <li>環境は Docker イメージで固定する（Python の依存は uv で固定）。手元では kind 上の Kubernetes Job として流し、同じマニフェストを後でクラウドでも使う</li>
     <li>結果は CSV（画像ごと・手法ごと・シードごとの1行）で保存し、表とグラフは CSV から自動で作る</li>
     <li>論文の数値と自分の数値は、常に並べた表で示す（再現の差を隠さない）</li>
-    <li>うまくいかなかった実験も記録する。G1 で「線は壊れない」とわかった場合も、それ自体を結果として扱い、計画を見直す</li>
+    <li>うまくいかなかった実験も記録する。「原因の特定」で「線は壊れない」とわかった場合も、それ自体を結果として扱い、計画を見直す</li>
     <li>コードは feature ブランチで開発し、main へのマージはあなたが確認してから行う</li>
   </ol>
-  <div class="note"><b>まだ確認できていないこと</b><p>ZS-N2N の学習設定は公式 Colab に合わせ、E0 で論文値を再現できました（上の結果）。Noise2Mean と Zero-Shot CFC のコードが公開されているか、Quick, Draw! の利用条件も、使う前に確認します。</p></div>
+  <div class="note"><b>まだ確認できていないこと</b><p>ZS-N2N の学習設定は公式 Colab に合わせ、論文再現で論文値を再現できました（上の結果）。Noise2Mean と Zero-Shot CFC のコードが公開されているか、Quick, Draw! の利用条件も、使う前に確認します。</p></div>
 </section>
 
 <footer>この計画は 2026年11月14日時点のものです。論文の数値は ZS-N2N 論文（arXiv 2303.11253 v3）の表から引用しました。ほかの論文の主張は要旨・紹介ページによるもので、まだ再現していません。計画は実験の結果を見ながら更新します。</footer>
@@ -310,7 +318,7 @@ drawDS("d");
 /* 日程図（8週間） */
 (function(){const s=document.getElementById("gantt"),L=200,R=880,T=34,row=27,W=(R-L)/8;
   for(let w=0;w<8;w++){el("rect",{x:L+w*W,y:T-4,width:W,height:row*8+4,fill:w%2?"var(--eq-bg)":"var(--surface)"},s);tx(s,L+w*W+W/2,T-12,`${w+1}週目`,{"font-size":11.5,fill:"var(--muted)","font-family":"var(--f-mono)"})}
-  const tasks=[["環境構築（Docker・kind）",0,1,"app"],["E0 ZS-N2N の再現（G0）",0.5,2,"core"],["合成線画ベンチの作成",1,2.5,"app"],["E1・E2 失敗の分析（G1）",2,3.5,"core"],["E3 新手法 M1〜M4（G2）",3.5,6,"core"],["E4 写真での確認",5.5,6.5,"app"],["E5 スキャン・相関ノイズ（G3）",6,7.5,"core"],["まとめ（レポート・発表）",7,8,"adj"]];
+  const tasks=[["環境構築（Docker・kind）",0,1,"app"],["論文再現（ZS-N2N）",0.5,2,"core"],["合成線画ベンチの作成",1,2.5,"app"],["線の壊れ方・部品ごとの効き方調査",2,3.5,"core"],["改良手法の評価",3.5,6,"core"],["写真での副作用チェック",5.5,6.5,"app"],["実スキャン線画での検証",6,7.5,"core"],["まとめ（レポート・発表）",7,8,"adj"]];
   tasks.forEach(([n,a,b,c],i)=>{const y=T+i*row;tx(s,L-10,y+16,n,{"text-anchor":"end","font-size":12.5});
     el("rect",{x:L+a*W+2,y:y+4,width:(b-a)*W-4,height:row-9,rx:5,fill:`var(--${c}-soft)`,stroke:`var(--${c})`,"stroke-width":1.3},s)});
   const mx=L+3.5*W,my=T+3*row+row/2;el("path",{d:`M${mx},${my-9} L${mx+9},${my} L${mx},${my+9} L${mx-9},${my} Z`,fill:"var(--focus)"},s);

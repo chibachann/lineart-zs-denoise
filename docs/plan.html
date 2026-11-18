@@ -96,7 +96,7 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padd
     <span class="eyebrow">研究の問い</span>
     <p class="q">ノイズの乗った画像1枚だけで学習する「ゼロショットのノイズ除去」は、線画（細い線と平らな塗り）でも線を壊さずに使えるか。壊すなら、その原因はどこにあり、どう直せば線を守れるか。</p>
   </div>
-  <nav class="toc" aria-label="目次"><a href="#ids">旧 ID との対応</a><a href="#hyp">仮説</a><a href="#core">核心の図</a><a href="#goals">ゴール</a><a href="#criteria">評価の基準</a><a href="#methods">新手法の案</a><a href="#lines">線の壊れ方の結果</a><a href="#exp">実験計画</a><a href="#data">データと指標</a><a href="#refs">参考文献</a><a href="#schedule">日程</a><a href="#rules">進め方のルール</a></nav>
+  <nav class="toc" aria-label="目次"><a href="#ids">旧 ID との対応</a><a href="#hyp">仮説</a><a href="#core">核心の図</a><a href="#goals">ゴール</a><a href="#criteria">評価の基準</a><a href="#methods">新手法の案</a><a href="#lines">線の壊れ方の結果</a><a href="#parts">部品調査の結果</a><a href="#exp">実験計画</a><a href="#data">データと指標</a><a href="#refs">参考文献</a><a href="#schedule">日程</a><a href="#rules">進め方のルール</a></nav>
 </header>
 
 <section id="ids">
@@ -232,6 +232,22 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padd
   </div>
 </section>
 
+<section id="parts">
+  <p class="eyebrow">結果 ・ 2026-11-19</p>
+  <h2>部品ごとの効き方調査の結果：斜め線を壊す主な原因は間引きペアの作り方</h2>
+  <div class="prose">
+    <p>部品を 1 つずつ変えた 11 条件と元の設定を、1〜3px・8 方向・濃さ 2 段階の合成線画 64 枚（σ=25）で比べた（768 件）。図と候補の詳細は報告ページ <a href="https://claude.ai/artifact/SJ9KWUVAyumsHAecm6JPxT">部品ごとの効き方調査</a> にまとめた。</p>
+  </div>
+  <div class="methods">
+    <div class="card"><b class="id">間引きペアの作り方</b><p>どの間引き方にも、1px の線が片方の画像にしか写らない「消える向き」がある。上下に分けると横に近い線、左右に分けると縦に近い線、元の斜めの分け方では斜め全部が消える。45° はどれでも消えた。</p></div>
+    <div class="card"><b class="id">ネットワーク構造</b><p>活性化を外す（線形のネット）と、斜めの 1px 線の clDice が 0.17 → 0.71（12 対すべて改善）。ただし PSNR −0.6 dB で、紙にノイズの模様が残る。幅・層・畳み込みの大きさを増やしても変わらない。</p></div>
+    <div class="card"><b class="id">損失関数</b><p>一貫性損失を外すと全体が壊れる（PSNR −6.7 dB）が、斜め線が消える原因ではない。絶対誤差にすると斜め線はさらに悪化（0.17 → 0.06）。</p></div>
+    <div class="card"><b class="id">残差学習・左右反転</b><p>残差学習なしは斜め線が少し良くなる（0.17 → 0.33、有意ではない）。左右反転しても結果は同じで、45° と 135° の差は向きではなく線と 2×2 マスの位置関係で決まる。</p></div>
+    <div class="card"><b class="id">改良手法の候補（優先度順）</b><p>1. 間引き方を混ぜる　2. 学習中に位置をずらす（新）　3. 線形の経路を足す（新）　4. 線の周りの誤差を重く数える　5. 線の向きに合わせて間引く。回転・反転の平均は見送り。</p></div>
+    <div class="card"><b class="id">次</b><p>改良手法の評価は、候補の順番と進め方を本人が確認してから始める。</p></div>
+  </div>
+</section>
+
 <section id="exp">
   <span class="eyebrow">実験計画</span>
   <h2>実験の一覧</h2>
@@ -239,7 +255,7 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padd
     <tr><th>実験</th><th>目的</th><th>データ</th><th>比べるもの</th><th>見る指標</th><th>合格ライン</th></tr>
     <tr><td>論文再現</td><td>環境構築と、基準手法の数値の再現（→ 再現の達成）</td><td>Kodak24、McMaster18（中央 256²）、ガウス σ=10/25/50、ポアソン λ=50/25/10</td><td>ZS-N2N（自前実装）、BM3D</td><td>PSNR、時間</td><td>論文値 ±0.5 dB（σ=25 は ±0.3 dB）</td></tr>
     <tr><td>線の壊れ方調査</td><td>仮説「向きの偏り」「太さの依存」の検証（→ 原因の特定）</td><td>合成線画：線幅 1/1.5/2/3/4px × 向き 8 方向 × σ=10/25/50</td><td>ZS-N2N、BM3D、DIP、メディアン、NLM</td><td>向き別・太さ別の線の再現率、線の濃さの保持率</td><td>向きによる差の有無を統計的に判定できること</td></tr>
-    <tr><td>部品ごとの効き方調査</td><td>損失の各項の役割</td><td>線の壊れ方調査と同じ</td><td>ZS-N2N から残差損失／一貫性損失を外したもの</td><td>線の再現率</td><td>どの項が線を消しているかを特定</td></tr>
+    <tr><td>部品ごとの効き方調査</td><td>間引き方・損失・構造・残差学習の役割</td><td>線の壊れ方調査と同じ（1〜3px、σ=25 に絞った）</td><td>ZS-N2N の部品を 1 つずつ変えた 11 条件</td><td>clDice・中心の濃さ・PSNR</td><td>どの部品が線を消しているかを特定 <span class="pass">完了（2026-11-19）</span></td></tr>
     <tr><td>改良手法の評価</td><td>新手法の比較（→ 線を守る改良）</td><td>合成線画＋Quick, Draw! を描画した線画（ライセンス確認後）</td><td>間引き方を混ぜる、線の向きに合わせて間引く、線の周りの誤差を重く数える、回転・反転の平均、それらの組み合わせ</td><td>PSNR、線の再現率、clDice</td><td>「線を守る改良」の合格ライン</td></tr>
     <tr><td>写真での副作用チェック</td><td>写真で性能が落ちないか</td><td>Kodak24、McMaster18</td><td>改良手法の評価で良かった手法 vs ZS-N2N</td><td>PSNR</td><td>低下 0.1 dB 以内</td></tr>
     <tr><td>実スキャン線画での検証</td><td>実際のスキャン（→ 実スキャンへの拡張と報告）</td><td>自作の線画をスキャン（原画のデジタル版があれば正解に使う）、紙の質感・JPEG の合成劣化</td><td>改良手法の評価の上位手法、ZS-N2N、Median2Median 系</td><td>見た目、可能なら PSNR と線の指標</td><td>見た目で明確に優位、数値で有意</td></tr>
@@ -314,7 +330,7 @@ footer{font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);padd
   <div class="note"><b>まだ確認できていないこと</b><p>ZS-N2N の学習設定は公式 Colab に合わせ、論文再現で論文値を再現できました（上の結果）。Noise2Mean と Zero-Shot CFC のコードが公開されているか、Quick, Draw! の利用条件も、使う前に確認します。</p></div>
 </section>
 
-<footer>この計画は 2026年11月16日時点のものです。論文の数値は ZS-N2N 論文（arXiv 2303.11253 v3）の表から引用しました。ほかの論文の主張は要旨・紹介ページによるもので、まだ再現していません。計画は実験の結果を見ながら更新します。</footer>
+<footer>この計画は 2026年11月19日時点のものです。論文の数値は ZS-N2N 論文（arXiv 2303.11253 v3）の表から引用しました。ほかの論文の主張は要旨・紹介ページによるもので、まだ再現していません。計画は実験の結果を見ながら更新します。</footer>
 </div>
 
 <script>

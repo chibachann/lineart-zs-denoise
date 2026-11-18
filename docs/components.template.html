@@ -1,0 +1,323 @@
+<title>部品ごとの効き方調査</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=Noto+Sans+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: 調査報告。結論 → 何を変えたか → 図（向きの表・間引き方・出力・画質との両立）→ 改良手法の候補 → 次の実験の案 → 注意点。1 カラム、図と表は横スクロール枠 */
+/* 色はデジタル庁デザインシステム（DADS）の公式トークン（primitive）だけを使う */
+:root{
+  --blue-50:#e8f1fe; --blue-200:#c5d7fb; --blue-400:#7096f8; --blue-600:#3460fb; --blue-800:#0031d8; --blue-900:#0017c1; --blue-1000:#00118f;
+  --green-800:#197a4b; --red-800:#ec0000; --orange-800:#c74700; --yellow-700:#b78f00;
+  --gray-50:#f2f2f2; --gray-100:#e6e6e6; --gray-200:#cccccc; --gray-420:#949494; --gray-600:#666666; --gray-700:#4d4d4d; --gray-900:#1a1a1a; --white:#ffffff;
+
+  --bg:var(--white); --surface:var(--gray-50); --soft:var(--blue-50); --fg:var(--gray-900); --muted:var(--gray-700);
+  --line:var(--gray-200); --accent:var(--blue-900); --good:var(--green-800); --bad:var(--red-800); --d2:var(--orange-800);
+  --heat-0:var(--blue-50); --heat-1:var(--blue-200); --heat-2:var(--blue-400); --heat-3:var(--blue-600); --heat-4:var(--blue-800); --heat-5:var(--blue-1000);
+  --heat-ink:var(--gray-900); --heat-ink-on:var(--white);
+  --pt-zs:var(--blue-900); --pt-base:var(--gray-600);
+
+  --f-body:"Noto Sans JP","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  --f-mono:"Noto Sans Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1a1a1a; --surface:#333333; --soft:#00118f; --fg:#f2f2f2; --muted:#cccccc; --line:#4d4d4d;
+  --accent:#9db7f9; --good:#71c598; --bad:#ff9696; --d2:#ffa66d; --pt-zs:#9db7f9; --pt-base:#b3b3b3; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1a1a1a; --surface:#333333; --soft:#00118f; --fg:#f2f2f2; --muted:#cccccc; --line:#4d4d4d;
+  --accent:#9db7f9; --good:#71c598; --bad:#ff9696; --d2:#ffa66d; --pt-zs:#9db7f9; --pt-base:#b3b3b3; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:16px;line-height:1.7;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 64px}
+.wrap{max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:48px}
+h1,h2,h3{line-height:1.4;margin:0;text-wrap:balance}
+h1{font-size:clamp(28px,5vw,36px);font-weight:700}
+h2{font-size:24px;font-weight:700;color:var(--accent)}
+h3{font-size:18px;font-weight:700}
+p{margin:0}
+ul{margin:0;padding-left:1.2em;display:flex;flex-direction:column;gap:4px}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+header{padding-top:40px;display:flex;flex-direction:column;gap:16px}
+.eyebrow{font-family:var(--f-mono);font-size:14px;color:var(--muted)}
+.meta{display:flex;flex-wrap:wrap;gap:8px}
+.chip{font-size:14px;border:1px solid var(--line);border-radius:8px;padding:0 8px;font-variant-numeric:tabular-nums}
+.prose{max-width:68ch;display:flex;flex-direction:column;gap:16px}
+section{display:flex;flex-direction:column;gap:16px}
+.lead{background:var(--soft);border-radius:8px;padding:24px;display:flex;flex-direction:column;gap:8px}
+.lead h2{color:var(--fg);font-size:20px}
+.lead li{max-width:72ch}
+figure{margin:0;border:1px solid var(--line);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:16px;min-width:0}
+figcaption{font-size:14px;color:var(--muted);max-width:76ch}
+figcaption b{color:var(--fg)}
+.scroll{overflow-x:auto}
+.scroll svg{display:block;width:100%;height:auto}
+.hm svg{min-width:620px}.to svg{min-width:620px}
+svg text{font-family:var(--f-body);fill:var(--fg)}
+svg .ax{font-size:14px;fill:var(--muted);font-variant-numeric:tabular-nums}
+svg .axt{font-size:14px;fill:var(--muted)}
+svg .grp{font-size:14px;font-weight:700;fill:var(--muted)}
+svg .lab{font-size:14px}
+svg .lab.base{font-weight:700}
+svg .v{font-size:14px;fill:var(--heat-ink);font-family:var(--f-mono)}
+svg .v.on{fill:var(--heat-ink-on)}
+svg .ring{stroke:var(--fg);stroke-width:2}
+svg .grid{stroke:var(--line);stroke-width:1}
+svg .pz{fill:var(--pt-zs);stroke:var(--bg);stroke-width:2}
+svg .pb{fill:var(--bg);stroke:var(--pt-base);stroke-width:2}
+svg .pbase{stroke:var(--fg);stroke-width:2}
+svg .pl{font-size:14px}
+svg .pl.mut{fill:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:14px;color:var(--muted);align-items:center}
+.legend .sw{display:inline-block;width:16px;height:16px;border-radius:2px;vertical-align:-3px;margin-right:4px}
+.legend .dot{display:inline-block;width:12px;height:12px;border-radius:50%;vertical-align:-1px;margin-right:4px}
+.pairs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+@media (max-width:760px){.pairs{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.pair{display:flex;flex-direction:column;gap:8px;min-width:0}
+.pair svg{width:96px;height:96px}
+.pair .cell1{fill:var(--accent)}.pair .cell2{fill:var(--d2)}.pair .cell0{fill:var(--surface);stroke:var(--line)}
+.pair svg text{font-size:20px;font-weight:700;fill:var(--bg)}
+.pair p{font-size:14px}
+.pair .kill{color:var(--bad);font-weight:700}
+.pair .keep{color:var(--good);font-weight:700}
+table.t{width:100%;border-collapse:collapse;font-size:14px;min-width:640px}
+table.t th,table.t td{border-top:1px solid var(--line);padding:8px;text-align:left;vertical-align:top}
+table.t th{font-weight:500;color:var(--muted);background:var(--surface)}
+table.t td.n{font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.up{color:var(--good);font-weight:700}.down{color:var(--bad);font-weight:700}
+.cands{display:flex;flex-direction:column;gap:16px}
+.cand{border:1px solid var(--line);border-radius:8px;padding:16px 24px;display:grid;grid-template-columns:48px 1fr;gap:8px 16px;min-width:0}
+.cand.top{border:2px solid var(--accent)}
+.cand .rank{font-family:var(--f-mono);font-size:24px;font-weight:500;color:var(--accent);line-height:1.3}
+.cand > div{display:flex;flex-direction:column;gap:8px;min-width:0}
+.cand dl{margin:0;display:grid;grid-template-columns:7em 1fr;gap:4px 16px;font-size:15px}
+.cand dt{color:var(--muted)}
+.cand dd{margin:0;min-width:0}
+@media (max-width:560px){.cand{grid-template-columns:1fr}.cand dl{grid-template-columns:1fr}.cand dt{margin-top:8px}}
+.tag{display:inline-block;font-size:14px;border-radius:8px;padding:0 8px;margin-left:8px;vertical-align:2px;border:1px solid currentColor}
+.tag.new{color:var(--accent)}.tag.old{color:var(--muted)}
+.drop{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+@media (max-width:760px){.drop{grid-template-columns:1fr}}
+.drop > div{background:var(--surface);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.stop{border:2px solid var(--accent);border-radius:8px;padding:16px 24px;display:flex;flex-direction:column;gap:8px}
+footer{font-size:14px;color:var(--muted);border-top:1px solid var(--line);padding-top:16px;display:flex;flex-direction:column;gap:4px}
+.montage img{display:block;width:100%;max-width:720px;height:auto;image-rendering:pixelated;border-radius:4px;background:var(--white)}
+</style>
+
+<div class="wrap">
+<header>
+  <p class="eyebrow">線画ゼロショット除去 ・ 2026-11-19</p>
+  <h1>部品ごとの効き方調査</h1>
+  <p class="prose">ZS-N2N で細い斜め線が壊れる原因はどの部品にあるのかを、部品を 1 つずつ変えて調べた。間引きペアの作り方・損失関数・ネットワーク構造・残差学習の 4 つについて 11 通りの変更を試し、元の設定と比較手法（BM3D など）と並べた。</p>
+  <div class="meta"><span class="chip">12 条件 × 64 枚 = 768 件</span><span class="chip">合成線画 1〜3px・8 方向・墨の濃さ 2 段階</span><span class="chip">ガウスノイズ σ=25</span><span class="chip">Apple M4（MPS）で約 6 時間</span></div>
+</header>
+
+<section class="lead" aria-labelledby="sum">
+  <h2 id="sum">結論</h2>
+  <ul>
+    <li><b>斜め線を壊している主な原因は、間引きペアの作り方。</b>どの間引き方にも「線が片方の画像にしか写らない向き」があり、その向きの 1px 線が消える。消える向きは間引き方ごとに違う。</li>
+    <li><b>非線形の活性化を外すと、斜めの 1px 線がかなり残る</b>（clDice 0.17 → 0.71、12 対すべてで改善）。線を「ノイズとして覚えて消す」には非線形の表現力が要るらしい。ただし PSNR は 0.6 dB 下がり、紙の部分にノイズの模様が残る。</li>
+    <li><b>ネットを大きくしても直らない</b>（幅 2 倍・層 2 倍・5×5 畳み込みは、ほぼ変化なし）。<b>一貫性損失は外すと全体が壊れる</b>（PSNR −6.7 dB）。<b>絶対誤差にすると斜め線はさらに悪くなる</b>。</li>
+    <li>45° と 135° の差は、向きではなく「線が 2×2 のマスのどこを通るか」で決まる。左右反転して処理しても結果は変わらなかった。</li>
+  </ul>
+</section>
+
+<section aria-labelledby="what">
+  <h2 id="what">何を変えたか</h2>
+  <div class="scroll"><table class="t">
+    <tr><th>部品</th><th>条件</th><th>変えた内容（それ以外は元の設定のまま）</th></tr>
+    <tr><td rowspan="4">間引きペアの作り方</td><td>上下に分ける</td><td>2×2 のマスの上の 2 画素の平均と、下の 2 画素の平均の 2 枚に分ける</td></tr>
+    <tr><td>左右に分ける</td><td>左の 2 画素の平均と、右の 2 画素の平均</td></tr>
+    <tr><td>平均しない</td><td>左上の 1 画素と、右下の 1 画素（平均しないのでノイズは強いまま）</td></tr>
+    <tr><td>左右反転して処理</td><td>画像を左右反転してから処理し、結果を戻す（45° と 135° の差の原因を調べるため）</td></tr>
+    <tr><td rowspan="2">損失関数</td><td>一貫性損失なし</td><td>残差損失だけで学習する</td></tr>
+    <tr><td>絶対誤差</td><td>誤差を二乗ではなく絶対値で測る（大きな誤差を軽く数える）</td></tr>
+    <tr><td rowspan="4">ネットワーク構造</td><td>幅 2 倍</td><td>中間のチャンネル数 48 → 96</td></tr>
+    <tr><td>層 2 倍</td><td>3×3 畳み込みの層 2 → 4</td></tr>
+    <tr><td>5×5 畳み込み</td><td>畳み込みの大きさ 3×3 → 5×5（見る範囲を広げる）</td></tr>
+    <tr><td>活性化なし</td><td>LeakyReLU を外す（ネット全体が 1 つの線形フィルタになる）</td></tr>
+    <tr><td>残差学習</td><td>残差学習なし</td><td>ノイズを推定して引くのではなく、きれいな画像を直接出す</td></tr>
+  </table></div>
+</section>
+
+<section aria-labelledby="f1">
+  <h2 id="f1">図 1　1px の線は、どの向きで消えるか</h2>
+  <figure>
+    <div class="scroll hm">{{HEATMAP}}</div>
+    <div class="legend" aria-hidden="true">
+      <span><span class="sw" style="background:var(--heat-0)"></span>0.1 未満（消えた）</span>
+      <span><span class="sw" style="background:var(--heat-1)"></span>0.1〜0.3</span>
+      <span><span class="sw" style="background:var(--heat-2)"></span>0.3〜0.5</span>
+      <span><span class="sw" style="background:var(--heat-3)"></span>0.5〜0.7</span>
+      <span><span class="sw" style="background:var(--heat-4)"></span>0.7〜0.9</span>
+      <span><span class="sw" style="background:var(--heat-5)"></span>0.9 以上（残った）</span>
+    </div>
+    <figcaption><b>数字は clDice</b>（出力の線の中心線が正解とどれだけ一致するか。1 = 完全に残る、0 = 消えた）。太さ 1px、σ=25、黒い線と灰色の線の平均。「何もしない」が高いのは、ノイズ画像のままでも線の位置は分かるからで、画質は悪い（図 4）。1.5px 以上の線は、元の設定ではどの向きでも 0.99 以上残る。</figcaption>
+  </figure>
+</section>
+
+<section aria-labelledby="f2">
+  <h2 id="f2">図 2　間引き方ごとの「消える向き」</h2>
+  <figure>
+    <div class="pairs">
+      <div class="pair">
+        <svg viewBox="0 0 96 96" aria-label="斜めに分ける: 右上と左下が1枚目、左上と右下が2枚目"><rect class="cell2" x="2" y="2" width="44" height="44" rx="4"/><text x="24" y="31" text-anchor="middle">2</text><rect class="cell1" x="50" y="2" width="44" height="44" rx="4"/><text x="72" y="31" text-anchor="middle">1</text><rect class="cell1" x="2" y="50" width="44" height="44" rx="4"/><text x="24" y="79" text-anchor="middle">1</text><rect class="cell2" x="50" y="50" width="44" height="44" rx="4"/><text x="72" y="79" text-anchor="middle">2</text></svg>
+        <h3>元の設定（斜めに分ける）</h3>
+        <p><span class="kill">消える</span>：0°・90° 以外の斜め全部<br><span class="keep">残る</span>：0°・90°</p>
+      </div>
+      <div class="pair">
+        <svg viewBox="0 0 96 96" aria-label="上下に分ける: 上の2画素が1枚目、下の2画素が2枚目"><rect class="cell1" x="2" y="2" width="44" height="44" rx="4"/><text x="24" y="31" text-anchor="middle">1</text><rect class="cell1" x="50" y="2" width="44" height="44" rx="4"/><text x="72" y="31" text-anchor="middle">1</text><rect class="cell2" x="2" y="50" width="44" height="44" rx="4"/><text x="24" y="79" text-anchor="middle">2</text><rect class="cell2" x="50" y="50" width="44" height="44" rx="4"/><text x="72" y="79" text-anchor="middle">2</text></svg>
+        <h3>上下に分ける</h3>
+        <p><span class="kill">消える</span>：0°・22.5°・157.5°（横に近い線）と 45°<br><span class="keep">残る</span>：67.5°〜135°</p>
+      </div>
+      <div class="pair">
+        <svg viewBox="0 0 96 96" aria-label="左右に分ける: 左の2画素が1枚目、右の2画素が2枚目"><rect class="cell1" x="2" y="2" width="44" height="44" rx="4"/><text x="24" y="31" text-anchor="middle">1</text><rect class="cell2" x="50" y="2" width="44" height="44" rx="4"/><text x="72" y="31" text-anchor="middle">2</text><rect class="cell1" x="2" y="50" width="44" height="44" rx="4"/><text x="24" y="79" text-anchor="middle">1</text><rect class="cell2" x="50" y="50" width="44" height="44" rx="4"/><text x="72" y="79" text-anchor="middle">2</text></svg>
+        <h3>左右に分ける</h3>
+        <p><span class="kill">消える</span>：67.5°〜112.5°（縦に近い線）と 45°<br><span class="keep">残る</span>：0°・22.5°・135°・157.5°</p>
+      </div>
+      <div class="pair">
+        <svg viewBox="0 0 96 96" aria-label="平均しない: 左上の1画素が1枚目、右下の1画素が2枚目"><rect class="cell1" x="2" y="2" width="44" height="44" rx="4"/><text x="24" y="31" text-anchor="middle">1</text><rect class="cell0" x="50" y="2" width="44" height="44" rx="4"/><rect class="cell0" x="2" y="50" width="44" height="44" rx="4"/><rect class="cell2" x="50" y="50" width="44" height="44" rx="4"/><text x="72" y="79" text-anchor="middle">2</text></svg>
+        <h3>平均しない</h3>
+        <p><span class="kill">消える</span>：ほぼ全部<br><span class="keep">残る</span>：135° だけ</p>
+      </div>
+    </div>
+    <figcaption><b>2×2 のマスのどの画素を、間引いた 1 枚目と 2 枚目に使うか</b>（数字が 1 枚目・2 枚目）。1px の線が片方の画像にしか写らない向きでは、ネットは「もう片方に写っていない線」をノイズとして消すように学習してしまう。消える向きの組は間引き方ごとに違うので、組み合わせれば互いの弱点を補える見込みがある。3 つの間引き方のうち一番良いものを向きごとに選ぶと、45° 以外はすべて 0.9 以上になる（実際に組み合わせた結果ではなく、上限の目安）。45° だけは 3 つとも 0.08 以下だった。</figcaption>
+  </figure>
+</section>
+
+<section aria-labelledby="f3">
+  <h2 id="f3">図 3　出力の比較（1px の黒い線、σ=25、中央 48px を 3 倍に拡大）</h2>
+  <figure class="montage">
+    <div class="scroll"><img src="{{MONTAGE}}" alt="条件ごとの出力を、線の向き（0°、22.5°、45°、90°、135°）ごとに並べた比較図。元の設定では斜めの線が灰色の太い帯にぼける。上下に分けると 0° の線が、左右に分けると 90° の線が消える。活性化なしでは斜め線がくっきり残るが、紙の部分にノイズの模様が残る。BM3D はどの向きもきれいに残る。" width="980" height="1984"></div>
+    <figcaption><b>「消える」の中身は、線が灰色の太い帯にぼけること</b>。元の設定の斜め線は、墨の量はほぼ残っているが、濃さが半分を下回るので clDice では 0 に近くなる。活性化なしでは斜め線がくっきり残る代わりに、紙の部分にノイズの模様が残る。</figcaption>
+  </figure>
+</section>
+
+<section aria-labelledby="f4">
+  <h2 id="f4">図 4　線を残すことと、画質を上げることは両立しているか</h2>
+  <figure>
+    <div class="scroll to">{{TRADEOFF}}</div>
+    <div class="legend" aria-hidden="true">
+      <span><span class="dot" style="background:var(--pt-zs)"></span>ZS-N2N の条件</span>
+      <span><span class="dot" style="border:2px solid var(--pt-base)"></span>比較手法（学習しない）</span>
+    </div>
+    <figcaption><b>右上ほど良い</b>。点にカーソルを合わせると値が出る。ZS-N2N の条件で、元の設定より上（線が残る）に動いたのは「活性化なし」と「残差学習なし」だけで、どちらも PSNR は少し下がる。BM3D はノイズの強さ σ を知っている前提で動かしており、平行な直線の繰り返しは BM3D が得意な絵柄なので、実際の線画では差が縮む可能性がある。</figcaption>
+  </figure>
+  <div class="scroll"><table class="t">
+    <tr><th>条件</th><th>PSNR（dB）</th><th>元との差</th><th>1px 斜め clDice</th><th>12 対の改善 / 悪化</th><th>1.5〜2px 斜め 中心の濃さ</th></tr>
+    <tr><td><b>元の設定</b></td><td class="n">27.63</td><td class="n">—</td><td class="n">0.17</td><td class="n">—</td><td class="n">0.82</td></tr>
+    <tr><td>上下に分ける</td><td class="n">23.69</td><td class="n down">−3.94</td><td class="n">0.47</td><td class="n">8 / 4</td><td class="n">0.68</td></tr>
+    <tr><td>左右に分ける</td><td class="n">23.75</td><td class="n down">−3.88</td><td class="n">0.47</td><td class="n">6 / 6</td><td class="n">0.68</td></tr>
+    <tr><td>平均しない</td><td class="n">20.89</td><td class="n down">−6.74</td><td class="n">0.21</td><td class="n">3 / 9</td><td class="n">0.51</td></tr>
+    <tr><td>左右反転して処理</td><td class="n">27.71</td><td class="n">+0.08</td><td class="n">0.17</td><td class="n">6 / 5</td><td class="n">0.82</td></tr>
+    <tr><td>一貫性損失なし</td><td class="n">20.96</td><td class="n down">−6.66</td><td class="n">0.15</td><td class="n">3 / 9</td><td class="n">0.66</td></tr>
+    <tr><td>絶対誤差</td><td class="n">27.52</td><td class="n">−0.11</td><td class="n down">0.06</td><td class="n down">0 / 12</td><td class="n">0.78</td></tr>
+    <tr><td>幅 2 倍</td><td class="n">27.55</td><td class="n">−0.08</td><td class="n">0.16</td><td class="n">5 / 7</td><td class="n">0.82</td></tr>
+    <tr><td>層 2 倍</td><td class="n">27.29</td><td class="n">−0.34</td><td class="n">0.23</td><td class="n">9 / 3</td><td class="n">0.83</td></tr>
+    <tr><td>5×5 畳み込み</td><td class="n">27.32</td><td class="n">−0.31</td><td class="n">0.20</td><td class="n">9 / 3</td><td class="n">0.83</td></tr>
+    <tr><td><b>活性化なし</b></td><td class="n">27.04</td><td class="n">−0.59</td><td class="n up">0.71</td><td class="n up">12 / 0</td><td class="n up">0.88</td></tr>
+    <tr><td>残差学習なし</td><td class="n">27.37</td><td class="n">−0.26</td><td class="n up">0.33</td><td class="n">9 / 3</td><td class="n">0.84</td></tr>
+    <tr><td>BM3D（比較）</td><td class="n">39.48</td><td class="n">—</td><td class="n">0.99</td><td class="n">—</td><td class="n">1.00</td></tr>
+    <tr><td>NLM（比較）</td><td class="n">33.43</td><td class="n">—</td><td class="n">0.91</td><td class="n">—</td><td class="n">0.97</td></tr>
+  </table></div>
+  <p class="prose" style="font-size:15px;color:var(--muted)">PSNR は全太さ・全向き（64 枚）の平均。「12 対」は 1px の斜め 6 方向 × 墨の濃さ 2 段階で、同じ線画どうしを比べた改善・悪化の数（符号検定で 12 対 0 なら p = 0.0005）。中心の濃さは、正解の線の中心での墨の濃さの比（1 = 正解どおり）。</p>
+</section>
+
+<section aria-labelledby="cand">
+  <h2 id="cand">改良手法の候補（優先度順）</h2>
+  <p class="prose">調査の結果から、線を守る改良の候補を並べ直した。計画ページの手法案に結果を当てはめ、新しく 2 つ（学習中に位置をずらす・線形の経路を足す）を加えた。試すのは本人の確認のあと。</p>
+  <div class="cands">
+    <div class="cand top"><span class="rank">1</span><div>
+      <h3>間引き方を混ぜる <span class="tag old">計画の手法案</span></h3>
+      <dl>
+        <dt>やること</dt><dd>学習の反復ごとに、間引き方（斜め・上下・左右）を順番に、またはランダムに切り替える。推論は今と同じ。</dd>
+        <dt>根拠</dt><dd>消える向きの組が間引き方ごとに違う（図 1・図 2）。向きごとに良いほうを選べれば、45° 以外はすべて 0.9 以上残る。</dd>
+        <dt>心配な点</dt><dd>混ぜると、どの向きの線も「半分の反復では片方にしか写らない」状態になり、かえって中途半端にぼける可能性がある。上下・左右は単独だと PSNR が 4 dB 下がるので、画質も確かめる必要がある。</dd>
+        <dt>手間と時間</dt><dd>実装は小さい。計算時間は変わらない。</dd>
+      </dl>
+    </div></div>
+    <div class="cand top"><span class="rank">2</span><div>
+      <h3>学習中に位置をずらす <span class="tag new">新しい案</span></h3>
+      <dl>
+        <dt>やること</dt><dd>反復ごとに画像を 0〜1px ずらしてから間引く。線と 2×2 マスの位置関係が毎回変わる。1 と組み合わせる前提。</dd>
+        <dt>根拠</dt><dd>45° と 135° の差は向きではなく、線がマスのどこを通るかで決まっていた（左右反転しても結果が変わらない）。45° はどの間引き方でも消えたので、位置の偏りを崩さないと 45° は救えない。</dd>
+        <dt>心配な点</dt><dd>端の 1px の扱い。ずらした分の画素を捨てるか、折り返すか。</dd>
+        <dt>手間と時間</dt><dd>実装は小さい。計算時間は変わらない。</dd>
+      </dl>
+    </div></div>
+    <div class="cand"><span class="rank">3</span><div>
+      <h3>線形の経路を足す <span class="tag new">新しい案</span></h3>
+      <dl>
+        <dt>やること</dt><dd>今のネットに、活性化を通らない線形の畳み込みの経路を並べて足す。または、活性化の強さ（LeakyReLU の傾き）を学習中に少しずつ非線形へ近づける。</dd>
+        <dt>根拠</dt><dd>活性化なしで、斜めの 1px 線が 0.17 → 0.71（12 対すべて改善）、1.5〜2px の中心の濃さも 0.82 → 0.88。線を消すには非線形の表現力が要るらしい。</dd>
+        <dt>心配な点</dt><dd>活性化なしは PSNR −0.6 dB で、紙にノイズの模様が残る（図 3）。足しただけでは非線形の経路が線を消してしまい、効果が消えるかもしれない。写真での副作用も大きく出る可能性がある。</dd>
+        <dt>手間と時間</dt><dd>実装は小さい。計算時間は 1.2 倍程度の見込み。</dd>
+      </dl>
+    </div></div>
+    <div class="cand"><span class="rank">4</span><div>
+      <h3>線の周りの誤差を重く数える <span class="tag old">計画の手法案</span></h3>
+      <dl>
+        <dt>やること</dt><dd>大きな誤差（線の部分に出やすい）を、二乗誤差より重く数える損失にする。または、ノイズ画像から推定した線の周りの画素の重みを上げる。</dd>
+        <dt>根拠</dt><dd>逆向きの変更（絶対誤差 = 大きな誤差を軽く数える）で、斜め線が 12 対すべてで悪化した（0.17 → 0.06）。重く数えれば逆に効く可能性がある。直接の証拠ではない。</dd>
+        <dt>心配な点</dt><dd>ノイズの大きな画素まで重く数えてしまい、除去が弱くなる。</dd>
+        <dt>手間と時間</dt><dd>実装は小さい。計算時間は変わらない。</dd>
+      </dl>
+    </div></div>
+    <div class="cand"><span class="rank">5</span><div>
+      <h3>線の向きに合わせて間引く <span class="tag old">計画の手法案</span></h3>
+      <dl>
+        <dt>やること</dt><dd>ノイズ画像から線の向きを推定し、場所ごとに、その向きの線が消えない間引き方を使う。</dd>
+        <dt>根拠</dt><dd>図 2 の対応表がそのまま使える（横に近い線には左右に分ける、など）。</dd>
+        <dt>心配な点</dt><dd>強いノイズの中で向きを推定できるか。45° に合う間引き方がまだない。1・2 で足りれば不要。</dd>
+        <dt>手間と時間</dt><dd>実装は中くらい。向きの推定の分だけ時間が増える。</dd>
+      </dl>
+    </div></div>
+  </div>
+  <div class="drop">
+    <div>
+      <h3>見送る・後回しにする案</h3>
+      <ul>
+        <li><b>回転・反転の平均</b>（計画の手法案）：左右反転は効果がなかった。90° 回転では斜めの間引き方が自分自身に戻るので、同じく効かない見込み。位置ずらし（候補 2）に置き換える。</li>
+        <li><b>ネットを大きくする</b>：幅・層・畳み込みの大きさを増やしても線は戻らず、PSNR は少し下がった。</li>
+        <li><b>残差学習なし</b>：斜め線は 0.17 → 0.33 と少し良くなったが、差は有意ではない（9 対 3、p = 0.15）。候補 1〜3 と組み合わせる選択肢として残す。</li>
+      </ul>
+    </div>
+    <div>
+      <h3>この調査では確かめていない案</h3>
+      <ul>
+        <li><b>墨と紙の2値性を使う</b>・<b>相関のあるノイズへの対応</b>：部品の調査とは別の話なので、そのまま残す。</li>
+        <li>σ=10 と 50、写真（Kodak24）での影響は、改良手法の評価のときに確かめる。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section aria-labelledby="next">
+  <h2 id="next">改良手法の評価の進め方（案）</h2>
+  <div class="scroll"><table class="t">
+    <tr><th>段階</th><th>内容</th><th>規模と時間の目安</th></tr>
+    <tr><td>1. 単独で試す</td><td>候補 1〜4 をそれぞれ、今回と同じ 64 枚・σ=25 で元の設定と比べる。候補 1 は「順番に切り替え」と「ランダム」の 2 通り、候補 2 は候補 1 と組み合わせた形</td><td class="n">6 条件 × 64 件、約 2.5 時間</td></tr>
+    <tr><td>2. 組み合わせる</td><td>1 で効いたものを 2〜3 個組み合わせる</td><td class="n">2〜3 条件、約 1 時間</td></tr>
+    <tr><td>3. 広げて確かめる</td><td>上位 2 つを σ=10・50、太さ 4px、初期値のシード 3 つで確かめ、写真（Kodak24）での副作用と計算時間を測る</td><td class="n">約 5 時間</td></tr>
+  </table></div>
+  <p class="prose">合格ラインは計画どおり：線画で ZS-N2N より PSNR +0.5 dB 以上、かつ線の再現率 +5 ポイント以上。写真での低下は 0.1 dB 以内、計算時間は 2 倍以内。</p>
+  <div class="stop">
+    <h3>ここで止めて、本人の確認を待つ</h3>
+    <p>改良の試行は、候補の順番と進め方を本人が確認してから始める。</p>
+  </div>
+</section>
+
+<section aria-labelledby="caveat">
+  <h2 id="caveat">注意点</h2>
+  <ul class="prose">
+    <li>計算時間の都合で σ=25 だけ、初期値のシードは 1 つ。線の壊れ方調査では σ=10/25/50 で傾向が同じだったので、結論は変わらない見込み。</li>
+    <li>統計は、同じ線画どうしを比べた符号検定。1px の斜め線は 12 対しかないので、p の最小値は 0.0005。</li>
+    <li>線画は平行な直線だけの合成画像。曲線・交差・端点はまだ含まない。</li>
+    <li>元の設定の結果は、線の壊れ方調査の同じ条件と 64 件すべてで完全に一致した（計算の再現を確認）。</li>
+  </ul>
+</section>
+
+<footer>
+  <p>データ：リポジトリ lineart-zs-denoise の <code>configs/e2_components.yaml</code>、集計 <code>docs/summaries/e2_components_summary.md</code>。比較手法の値は線の壊れ方調査（同じ線画・同じノイズ）から σ=25・1〜3px の分を使用。</p>
+  <p>配色・文字はデジタル庁デザインシステム（https://design.digital.go.jp/dads/）のトークンを参考にした。</p>
+</footer>
+</div>

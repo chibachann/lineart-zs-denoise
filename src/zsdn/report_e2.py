@@ -8,7 +8,7 @@
 比べ方:
   - 「斜め」= 0°・90° 以外の 6 方向、「軸」= 0°・90°
   - 元の設定との比較は、同じ線画・同じ σ の組を 1 対として、clDice の差に符号検定（両側）をかける
-  - ベースライン（線の壊れ方調査で計算済みの identity / median3 / nlm / bm3d）は、同じ太さ（1〜3px）に絞って並べる
+  - ベースライン（線の壊れ方調査で計算済みの identity / median3 / nlm / bm3d）は、同じ太さ・同じ σ に絞って並べる
 """
 from __future__ import annotations
 
@@ -126,15 +126,18 @@ def main() -> None:
 
     rows = load(args.rows)
     widths = sorted({r["width"] for r in rows})
-    extra = [r for r in load(args.baselines) if r["width"] in widths]
+    levels = {r["level"] for r in rows}
+    # ベースラインは、この調査と同じ太さ・同じ σ の行だけを使う
+    same = lambda r: r["width"] in widths and r["level"] in levels
+    extra = [r for r in load(args.baselines) if same(r)]
     for r in load(args.mps):
-        if r["width"] in widths:
+        if same(r):
             r["method"] = "zsn2n_mps"
             extra.append(r)
     allr = rows + extra
 
     md = "# 部品ごとの効き方調査の集計\n\n"
-    md += f"条件 {len({r['method'] for r in rows})} 個、{len(rows)} 行（比較用のベースライン {len(extra)} 行）。太さ {widths}\n\n"
+    md += f"条件 {len({r['method'] for r in rows})} 個、{len(rows)} 行（比較用のベースライン {len(extra)} 行）。太さ {widths}、σ {sorted(levels)}\n\n"
     md += "## 主な指標（σ・濃さ・向きで平均）\n\n" + summary_table(allr) + "\n"
     md += "## 元の設定との対比較（clDice、全太さ）\n\n" + vs_base(rows) + "\n"
     md += "## 元の設定との対比較（clDice、1px の斜めだけ）\n\n" + vs_base(rows, filt=lambda r: r["width"] == 1 and r["angle"] not in AXIS) + "\n"

@@ -124,12 +124,13 @@ def main() -> None:
                     for r in csv.DictReader(f)}
 
     # 学習しない手法はシードで結果が変わらないので、初期値のシードは最初の 1 つだけ使う
+    # 手法（条件）ごとにまとめて計算する（途中でも、終わった条件から集計できるように）
     jobs = []
-    for spec in specs:
-        for nz in cfg["noises"]:
-            for ns in cfg.get("noise_seeds", [0]):
-                for m in cfg["methods"]:
-                    seeds = cfg.get("init_seeds", [0]) if m["name"] == "zsn2n" else cfg.get("init_seeds", [0])[:1]
+    for m in cfg["methods"]:
+        seeds = cfg.get("init_seeds", [0]) if m["name"] == "zsn2n" else cfg.get("init_seeds", [0])[:1]
+        for spec in specs:
+            for nz in cfg["noises"]:
+                for ns in cfg.get("noise_seeds", [0]):
                     for isd in seeds:
                         if (spec.name, str(float(nz["level"])), str(ns), str(isd), label_of(m)) not in done:
                             jobs.append((spec, nz, ns, isd, m))

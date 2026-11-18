@@ -1,6 +1,9 @@
 # 部品ごとの効き方調査: ZS-N2N の部品を 1 つずつ変えて、線の壊れ方がどう変わるかを測る
 # 線画・ノイズは線の壊れ方調査（e1_*.yaml）と同じ（同じノイズ画像のキャッシュを使う）。
-# 4px の線はどの手法でも壊れなかったので、時間節約のため 1〜3px に絞る（64 枚 × σ3 段階 × 12 条件 = 2,304 件）
+# 計算時間の都合で範囲を絞る（64 枚 × σ=25 × 12 条件 = 768 件、MPS で約 9 時間）:
+#   - 4px の線はどの手法でも壊れなかったので 1〜3px
+#   - σ は 25 だけ（線の壊れ方調査では σ=10/25/50 で傾向が同じだった）
+# 最初は CPU 9 並列で σ 3 段階を試したが、行列演算ユニットの取り合いで 1 件 670 秒かかり（約 70 時間）、やめた
 name: e2_components
 bench:
   widths: [1, 1.5, 2, 3]
@@ -9,14 +12,12 @@ bench:
   size: 256
   jitter: true
 noises:
-  - {kind: gauss, level: 10, clip: false}
   - {kind: gauss, level: 25, clip: false}
-  - {kind: gauss, level: 50, clip: false}
 noise_seeds: [0]
 init_seeds: [0]
 # label が結果の method 列になる。base 以外は、base から 1 か所だけ変えたもの
 methods:
-  # 元の設定（公式どおり）。計算機の違いをそろえるため、線の壊れ方調査（MPS）とは別に CPU で計算し直す
+  # 元の設定（公式どおり）。線の壊れ方調査と同じ設定・同じ計算機（MPS）なので、同じ結果になるはず（再現の確認を兼ねる）
   - {label: base, name: zsn2n, chan_embed: 48, iters: 2000, lr: 0.001, step_size: 1500, gamma: 0.5}
   # 間引きペアの作り方
   - {label: pair_horiz, name: zsn2n, pair: horiz}     # 上の 2 画素 / 下の 2 画素
@@ -33,8 +34,7 @@ methods:
   - {label: net_linear, name: zsn2n, act: none}       # 活性化なし（線形フィルタになる）
   # 残差学習
   - {label: direct, name: zsn2n, residual: false}     # ノイズではなく、きれいな画像を直接出す
-device: cpu
+device: mps
 threads: 1
-workers: 9
 out_dir: results
 noise_cache: data/noisy

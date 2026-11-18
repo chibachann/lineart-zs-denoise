@@ -3,6 +3,10 @@
 使い方:
     uv run python -m zsdn.run_e1 --config configs/e1_classic.yaml
     uv run python -m zsdn.run_e1 --config configs/e1_zsn2n.yaml --device mps
+    uv run python -m zsdn.run_e1 --config configs/e2_components.yaml --workers 8
+
+同じ手法を設定違いで並べるときは、methods の各項目に label を付ける（結果の method 列・出力画像の名前になる）。
+CPU のときは workers 個のプロセスで並列に計算する（1 プロセス 1 スレッド）。
 
 結果は results/<name>/<設定のハッシュ>/ に保存する（E0 と同じ形式）:
     rows.csv … 画像・ノイズ・シード・手法ごとに 1 行。再実行すると続きから計算する
@@ -14,6 +18,7 @@ import argparse
 import csv
 import json
 import platform
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 
 import numpy as np
@@ -30,7 +35,7 @@ from zsdn.run import config_hash, git_commit, pick_device
 from zsdn.zsn2n import ZSN2NConfig, denoise_zsn2n
 
 FIELDS = ["exp", "image", "width", "angle", "contrast", "noise", "level", "noise_seed", "init_seed", "method",
-          "psnr", "psnr_noisy", "recall", "precision", "f1", "cldice", "ink_ratio", "width_est", "width_err",
+          "psnr", "psnr_noisy", "recall", "precision", "f1", "cldice", "ink_ratio", "width_est", "width_err", "center_ink", "width_half",
           "seconds", "device", "config_hash"]
 
 
@@ -45,12 +50,39 @@ def noisy_for(spec: LineSpec, clean: torch.Tensor, level: float, seed: int, clip
     return noisy
 
 
+def label_of(method: dict) -> str:
+    """結果に記録する手法名。label があればそれ、なければ name。"""
+    return method.get("label", method["name"])
+
+
 def denoise(noisy: torch.Tensor, method: dict, level: float, init_seed: int, device: str) -> tuple[torch.Tensor, float]:
     """手法の設定（dict）に従ってノイズを除く。"""
     if method["name"] == "zsn2n":
-        cfg = ZSN2NConfig(**{k: v for k, v in method.items() if k != "name"})
+        cfg = ZSN2NConfig(**{k: v for k, v in method.items() if k not in ("name", "label")})
         return denoise_zsn2n(noisy, cfg, init_seed, device)
     return denoise_classic(noisy, method["name"], level)
+
+
+def run_job(job: tuple, cfg: dict, device: str, h: str, out_dir: Path, cache_dir: Path) -> dict:
+    """1 件（線画 1 枚 × ノイズ 1 つ × 手法 1 つ）を計算し、出力画像を保存して、rows.csv の 1 行を返す。
+
+    並列実行のときは別プロセスで呼ばれるので、必要なものはすべて引数で受け取る。
+    """
+    spec, nz, ns, isd, m = job
+    torch.set_num_threads(int(cfg.get("threads", 1)))
+    clean, dist = render(spec)
+    noisy = noisy_for(spec, clean, nz["level"], ns, nz.get("clip", False), cache_dir)
+    out, sec = denoise(noisy, m, nz["level"], isd, device)
+    lm = line_metrics(out, clean, dist, spec.width, spec.contrast)
+    tag = f"{spec.name}_g{nz['level']:g}_n{ns}_i{isd}"
+    Image.fromarray((out[0, 0].numpy() * 255).round().astype(np.uint8)).save(out_dir / "out" / f"{label_of(m)}_{tag}.png")
+    return {
+        "exp": cfg["name"], "image": spec.name, "width": spec.width, "angle": spec.angle,
+        "contrast": spec.contrast, "noise": "gauss", "level": nz["level"], "noise_seed": ns,
+        "init_seed": isd, "method": label_of(m), "psnr": round(psnr(clean, out), 4),
+        "psnr_noisy": round(psnr(clean, noisy), 4), **lm, "seconds": round(sec, 2),
+        "device": device if m["name"] == "zsn2n" else "cpu", "config_hash": h,
+    }
 
 
 def main() -> None:
@@ -58,6 +90,7 @@ def main() -> None:
     ap.add_argument("--config", required=True)
     ap.add_argument("--device", help="設定ファイルの device を上書き")
     ap.add_argument("--max-images", type=int, help="先頭 N 枚だけ使う（動作確認用）")
+    ap.add_argument("--workers", type=int, help="並列プロセス数を上書き（CPU のときだけ有効）")
     args = ap.parse_args()
 
     cfg = yaml.safe_load(Path(args.config).read_text(encoding="utf-8"))
@@ -65,6 +98,8 @@ def main() -> None:
         cfg["device"] = args.device
     if args.max_images:
         cfg["max_images"] = args.max_images
+    if args.workers:
+        cfg["workers"] = args.workers
     device = pick_device(cfg.get("device", "cpu"))
     torch.set_num_threads(int(cfg.get("threads", 4)))
     h = config_hash(cfg)
@@ -96,36 +131,37 @@ def main() -> None:
                 for m in cfg["methods"]:
                     seeds = cfg.get("init_seeds", [0]) if m["name"] == "zsn2n" else cfg.get("init_seeds", [0])[:1]
                     for isd in seeds:
-                        if (spec.name, str(float(nz["level"])), str(ns), str(isd), m["name"]) not in done:
+                        if (spec.name, str(float(nz["level"])), str(ns), str(isd), label_of(m)) not in done:
                             jobs.append((spec, nz, ns, isd, m))
-    print(f"[run_e1] {cfg['name']} ({h}) device={device} 残り {len(jobs)} 件 → {rows_path}", flush=True)
+    workers = 1 if device != "cpu" else int(cfg.get("workers", 1))  # GPU は 1 プロセスで使う
+    print(f"[run_e1] {cfg['name']} ({h}) device={device} workers={workers} 残り {len(jobs)} 件 → {rows_path}", flush=True)
 
     new_file = not rows_path.exists()
     with rows_path.open("a", newline="") as f:
         w = csv.DictWriter(f, fieldnames=FIELDS)
         if new_file:
             w.writeheader()
-        cache: dict[str, tuple] = {}
-        for i, (spec, nz, ns, isd, m) in enumerate(jobs, 1):
-            if spec.name not in cache:
-                cache = {spec.name: render(spec)}  # 1 枚ずつ使うので、直前の 1 枚だけ覚えておく
-            clean, dist = cache[spec.name]
-            noisy = noisy_for(spec, clean, nz["level"], ns, nz.get("clip", False), cache_dir)
-            out, sec = denoise(noisy, m, nz["level"], isd, device)
-            lm = line_metrics(out, clean, dist, spec.width, spec.contrast)
-            tag = f"{spec.name}_g{nz['level']:g}_n{ns}_i{isd}"
-            Image.fromarray((out[0, 0].numpy() * 255).round().astype(np.uint8)).save(out_dir / "out" / f"{m['name']}_{tag}.png")
-            row = {
-                "exp": cfg["name"], "image": spec.name, "width": spec.width, "angle": spec.angle,
-                "contrast": spec.contrast, "noise": "gauss", "level": nz["level"], "noise_seed": ns,
-                "init_seed": isd, "method": m["name"], "psnr": round(psnr(clean, out), 4),
-                "psnr_noisy": round(psnr(clean, noisy), 4), **lm, "seconds": round(sec, 2),
-                "device": device if m["name"] == "zsn2n" else "cpu", "config_hash": h,
-            }
+
+        def record(i: int, row: dict) -> None:
+            """1 行を書いてすぐ保存する（途中で止めても、そこまでの結果が残るように）。"""
             w.writerow(row)
             f.flush()
-            print(f"[{i}/{len(jobs)}] {m['name']} {tag} PSNR {row['psnr']:.2f} recall {lm['recall']:.3f} "
-                  f"clDice {lm['cldice']:.3f} 太さ {lm['width_est']:.2f}/{spec.width:g} {sec:.1f}s", flush=True)
+            print(f"[{i}/{len(jobs)}] {row['method']} {row['image']} σ={row['level']:g} PSNR {row['psnr']:.2f} "
+                  f"recall {row['recall']:.3f} clDice {row['cldice']:.3f} 太さ {row['width_est']:.2f}/{row['width']:g} "
+                  f"{row['seconds']:.1f}s", flush=True)
+
+        if workers == 1:
+            for i, job in enumerate(jobs, 1):
+                record(i, run_job(job, cfg, device, h, out_dir, cache_dir))
+        else:
+            # ノイズ画像のキャッシュを先に作っておく（複数プロセスが同じファイルを同時に書かないように）
+            need = {(spec.name, nz["level"], ns): (spec, nz, ns) for spec, nz, ns, _, _ in jobs}
+            for spec, nz, ns in need.values():
+                noisy_for(spec, render(spec)[0], nz["level"], ns, nz.get("clip", False), cache_dir)
+            with ProcessPoolExecutor(max_workers=workers) as pool:
+                futs = [pool.submit(run_job, job, cfg, device, h, out_dir, cache_dir) for job in jobs]
+                for i, fut in enumerate(as_completed(futs), 1):
+                    record(i, fut.result())
 
 
 if __name__ == "__main__":

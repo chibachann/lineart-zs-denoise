@@ -1,0 +1,40 @@
+# 部品ごとの効き方調査: ZS-N2N の部品を 1 つずつ変えて、線の壊れ方がどう変わるかを測る
+# 線画・ノイズは線の壊れ方調査（e1_*.yaml）と同じ（同じノイズ画像のキャッシュを使う）。
+# 4px の線はどの手法でも壊れなかったので、時間節約のため 1〜3px に絞る（64 枚 × σ3 段階 × 12 条件 = 2,304 件）
+name: e2_components
+bench:
+  widths: [1, 1.5, 2, 3]
+  n_angles: 8            # 0°〜157.5°、22.5° 刻み
+  contrasts: [1.0, 0.5]  # 1.0 = 黒いペン、0.5 = 鉛筆のような灰色
+  size: 256
+  jitter: true
+noises:
+  - {kind: gauss, level: 10, clip: false}
+  - {kind: gauss, level: 25, clip: false}
+  - {kind: gauss, level: 50, clip: false}
+noise_seeds: [0]
+init_seeds: [0]
+# label が結果の method 列になる。base 以外は、base から 1 か所だけ変えたもの
+methods:
+  # 元の設定（公式どおり）。計算機の違いをそろえるため、線の壊れ方調査（MPS）とは別に CPU で計算し直す
+  - {label: base, name: zsn2n, chan_embed: 48, iters: 2000, lr: 0.001, step_size: 1500, gamma: 0.5}
+  # 間引きペアの作り方
+  - {label: pair_horiz, name: zsn2n, pair: horiz}     # 上の 2 画素 / 下の 2 画素
+  - {label: pair_vert, name: zsn2n, pair: vert}       # 左の 2 画素 / 右の 2 画素
+  - {label: pair_single, name: zsn2n, pair: single}   # 平均せず 1 画素ずつ（左上 / 右下）
+  - {label: pair_flip, name: zsn2n, flip: true}       # 左右反転して処理（45° と 135° の差が間引き方の向きから来るかの診断）
+  # 損失関数
+  - {label: loss_res_only, name: zsn2n, cons_weight: 0.0}  # 一貫性損失なし
+  - {label: loss_l1, name: zsn2n, loss: l1}                # 二乗誤差の代わりに絶対誤差
+  # ネットワーク構造
+  - {label: net_wide, name: zsn2n, chan_embed: 96}    # 中間チャンネル 2 倍
+  - {label: net_deep, name: zsn2n, depth: 4}          # 3×3 層を 2 → 4
+  - {label: net_k5, name: zsn2n, kernel: 5}           # 畳み込みを 5×5 に（見る範囲を広げる）
+  - {label: net_linear, name: zsn2n, act: none}       # 活性化なし（線形フィルタになる）
+  # 残差学習
+  - {label: direct, name: zsn2n, residual: false}     # ノイズではなく、きれいな画像を直接出す
+device: cpu
+threads: 1
+workers: 9
+out_dir: results
+noise_cache: data/noisy
